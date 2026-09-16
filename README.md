@@ -1,11 +1,19 @@
-# 🎬 Autonomous AI Video Clipper & YouTube Shorts Income Engine (50 Clips/Day)
+# 🎬 Autonomous AI Video Clipper & YouTube Shorts Income Engine (96 Clips/Day 24/7)
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Multi-Model AI](https://img.shields.io/badge/AI-Groq%20%7C%20DeepSeek%20%7C%20Gemini%20%7C%20Cerebras-orange.svg)]()
-[![Free Hosting: GitHub Actions](https://img.shields.io/badge/Hosting-GitHub%20Actions%20(100%25%20Free)-green.svg)]()
+[![Free Hosting: GitHub Actions](https://img.shields.io/badge/Hosting-GitHub%20Actions%20(Every%2015%20Mins)-green.svg)]()
 
-A 100% autonomous, zero-touch video clipping and publishing pipeline. It monitors the **top 50 global creators & streamers** (*IShowSpeed, Kai Cenat, Ibai, xQc, MrBeast, CaseOh, etc.*), transcribes audio in ~3 seconds using **Groq Whisper Large v3**, extracts high-retention viral moments using **OpenRouter DeepSeek & Groq Qwen**, reframes to **9:16 vertical video** with face tracking, burns **animated Hormozi subtitles**, and publishes **50 YouTube Shorts daily** without human intervention or API quota fees.
+A 100% autonomous, zero-touch video clipping and publishing pipeline. It monitors the **top 50 global creators & streamers** (*IShowSpeed, Kai Cenat, Ibai, xQc, MrBeast, CaseOh, etc.*), transcribes audio in ~3 seconds using **Groq Whisper Large v3**, extracts high-retention viral moments using **OpenRouter DeepSeek & Groq Qwen**, reframes to **9:16 vertical video** with face tracking, burns **animated Hormozi subtitles**, and publishes **96 YouTube Shorts daily (4 shorts/hour, 1 every 15 minutes 24/7)** without human intervention or API quota fees.
+
+---
+
+## ⏱️ Cadence Breakdown (96 Shorts / 24 Hours)
+
+- **Every 15 Minutes**: Pipeline triggers in the cloud $\to$ discovers fresh videos $\to$ publishes 1 viral short.
+- **Every Hour**: **4 viral shorts** published.
+- **Every 24 Hours**: **96 viral shorts** published across the clock.
 
 ---
 
@@ -13,18 +21,18 @@ A 100% autonomous, zero-touch video clipping and publishing pipeline. It monitor
 
 ```mermaid
 flowchart TD
-    subgraph 24/7 Cloud Execution
-        A[GitHub Actions / Free Cloud Host] --> B{Queue has < 10 clips?}
+    subgraph 24/7 Cloud Execution (Every 15 Minutes)
+        A[GitHub Actions / Free Cloud Host: cron '*/15 * * * *'] --> B{Queue has < 15 clips?}
         B -->|Yes| C[Discovery Engine: 50 Monitored Creators]
         C --> D[Ingest Fresh Video & Audio via yt-dlp]
         D -->|Groq Whisper Large v3| E[Timestamped Transcript ~3s]
         E -->|OpenRouter DeepSeek R1/V3 & Gemini| F[Score & Rank Viral Hooks]
         F -->|FFmpeg + Face Tracking + Pillow Overlays| G[Render 9:16 1080x1920 with Hormozi Captions]
         G --> H[Store in SQLite Database]
-        B -->|No: Queue Ready| I[Publishing Timer]
+        B -->|No: Queue Ready| I[Publishing Timer: 15-Minute Trigger]
         H --> I
-        I -->|Every 28.8 minutes| J[Playwright Studio Uploader: Zero API Quota]
-        J --> K[YouTube Shorts Channel: 50 Clips/Day]
+        I --> J[Playwright Studio Uploader: Zero API Quota]
+        J --> K[YouTube Shorts Channel: 96 Shorts/Day 24/7]
     end
 ```
 
@@ -56,7 +64,6 @@ The pipeline continuously monitors 50 of the world's most viewed streamers and c
 
 ### 1. Push to GitHub
 ```bash
-# Set your remote repository
 git remote add origin https://github.com/abulhasan-18/youtube-clipper-income.git
 git branch -M main
 git push -u origin main
@@ -66,9 +73,9 @@ git push -u origin main
 
 ---
 
-### 2. Run 100% Free via GitHub Actions (Zero Server Cost)
+### 2. Run 100% Free via GitHub Actions (Every 15 Minutes)
 
-This repository includes a scheduled workflow at `.github/workflows/clipper_autopilot.yml` that runs every 30 minutes on GitHub's free Ubuntu cloud runners.
+This repository includes a scheduled workflow at `.github/workflows/clipper_autopilot.yml` configured with `cron: '*/15 * * * *'` that runs every 15 minutes on GitHub's free Ubuntu cloud runners.
 
 #### Step A: Authenticate YouTube Studio Once Locally
 On your Mac/PC:
@@ -103,15 +110,7 @@ In your GitHub repo (`https://github.com/abulhasan-18/youtube-clipper-income`), 
 | `YOUTUBE_SESSION_B64` | The exported base64 session string from Step B |
 
 #### Step D: Enable Workflow
-Go to the **Actions** tab on your GitHub repository, click **Autonomous AI Video Clipper**, and click **Run workflow**! It will now run automatically on a cron schedule every 30 minutes!
-
----
-
-### 3. Alternative Free Hosting (Render / Koyeb / Hugging Face Spaces)
-
-A production `Dockerfile` is included:
-- **Hugging Face Spaces**: Create a Space, select **Docker**, link this GitHub repo. (Free 2-vCPU / 16GB RAM 24/7 forever).
-- **Render / Koyeb**: Deploy as a background worker with `python cli.py autopilot`.
+Go to the **Actions** tab on your GitHub repository, click **Autonomous AI Video Clipper**, and click **Run workflow**! It will now run automatically on a cron schedule every 15 minutes, publishing 4 shorts/hour and 96 shorts every 24 hours!
 
 ---
 

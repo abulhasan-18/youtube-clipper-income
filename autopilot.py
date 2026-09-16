@@ -26,9 +26,9 @@ class AutoPilotService:
         self.discovery = ContentDiscovery(db=self.db)
         self.pipeline = ClipperPipeline(config_path=config_path)
 
-        # Publishing settings
-        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 50)
-        self.interval_sec = self.config.get("publishing", {}).get("interval_minutes", 28) * 60
+        # Publishing settings: 96 clips/day (1 every 15 minutes)
+        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 96)
+        self.interval_sec = self.config.get("publishing", {}).get("interval_minutes", 15) * 60
         self.visibility = self.config.get("publishing", {}).get("default_visibility", "public")
         self.reframe_mode = self.config.get("video", {}).get("reframe_mode", "face_track")
 
@@ -45,15 +45,15 @@ class AutoPilotService:
         100% Autonomous 24/7 Loop:
         - Discovers videos from the 50 monitored creators
         - Clips and renders 9:16 vertical shorts with dynamic subtitles
-        - Schedules and uploads 50 shorts daily to YouTube Shorts
+        - Schedules and uploads 96 shorts daily (1 every 15 mins) to YouTube Shorts
         """
         console.rule("[bold cyan]🤖 Clipper AutoPilot: 100% Autonomous 24/7 Service")
         console.print(Panel(
             f"[bold green]Monitored Creators:[/bold green] 50 Top Streamers (IShowSpeed, Kai Cenat, Ibai, xQc, Adin Ross, etc.)\n"
-            f"[bold green]Target Output:[/bold green] 50 Viral Shorts / Day\n"
+            f"[bold green]Target Output:[/bold green] 96 Viral Shorts / Day (4 shorts/hr 24/7)\n"
             f"[bold green]Upload Cadence:[/bold green] 1 Short every {self.interval_sec/60:.1f} minutes\n"
             f"[bold green]Auto-Reframe:[/bold green] 9:16 Vertical with Face Tracking & Hormozi Captions",
-            title="AutoPilot Initialized",
+            title="AutoPilot Initialized (96 Shorts / Day)",
             border_style="cyan"
         ))
 
@@ -65,8 +65,8 @@ class AutoPilotService:
 
                 console.print(f"\n[bold][{now_str}][/bold] Today: [yellow]{today_count}/{self.target_daily}[/yellow] uploads | Ready in Queue: [cyan]{queued_count}[/cyan] clips")
 
-                # 1. PRODUCTION STAGE: If queue buffer is low (< 10 clips), discover & produce new shorts
-                if queued_count < 10 and today_count < self.target_daily:
+                # 1. PRODUCTION STAGE: If queue buffer is low (< 15 clips), discover & produce new shorts
+                if queued_count < 15 and today_count < self.target_daily:
                     console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
                     next_video = self.discovery.discover_next_unprocessed_video()
 
@@ -77,10 +77,10 @@ class AutoPilotService:
                         console.print(f"[bold yellow]Ingesting fresh stream/video from {creator}:[/bold yellow] {title}")
 
                         try:
-                            # Extract 3-5 high-virality clips from this video
+                            # Extract 4-5 high-virality clips from this video
                             new_clips = self.pipeline.process_video(
                                 source_url=url,
-                                max_clips=5,
+                                max_clips=4,
                                 reframe_mode=self.reframe_mode
                             )
                             console.print(f"[green]Produced {len(new_clips)} new viral shorts into queue.[/green]")
@@ -90,7 +90,7 @@ class AutoPilotService:
                     else:
                         console.print("[dim]No new videos found right now. Will check again in next cycle.[/dim]")
 
-                # 2. PUBLISHING STAGE: Check if it's time to upload the next short
+                # 2. PUBLISHING STAGE: Check if 15 minutes have passed since last upload
                 time_since_last = time.time() - self.last_upload_time
                 is_time_to_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.interval_sec)
 
@@ -98,7 +98,7 @@ class AutoPilotService:
                     queued_clips = self.db.get_queued_clips(limit=1)
                     if queued_clips:
                         clip = queued_clips[0]
-                        console.print(f"\n[bold magenta]Publishing Short #{today_count + 1} to YouTube Shorts...[/bold magenta]")
+                        console.print(f"\n[bold magenta]Publishing Short #{today_count + 1}/96 to YouTube Shorts...[/bold magenta]")
                         console.print(f"Title: {clip['title']}")
 
                         res = self.uploader.upload_short(
@@ -118,7 +118,7 @@ class AutoPilotService:
                             self.db.mark_clip_failed(clip["id"], res.get("message", "Upload error"))
 
                 elif today_count >= self.target_daily:
-                    console.print("[bold green]Daily target of 50 uploads completed for today! Resting until midnight.[/bold green]")
+                    console.print("[bold green]Daily target of 96 uploads completed for today! Resting until midnight.[/bold green]")
 
                 # 3. MAINTENANCE: Clean up temporary files in downloads/ and temp/
                 self._cleanup_temp_files()
@@ -139,7 +139,6 @@ class AutoPilotService:
         if os.path.exists(downloads_dir):
             for f in os.listdir(downloads_dir):
                 fp = os.path.join(downloads_dir, f)
-                # Remove files older than 2 hours that are not final renders
                 if os.path.isfile(fp) and (f.endswith(".mp3") or f.startswith("raw_")):
                     try:
                         if time.time() - os.path.getmtime(fp) > 7200:

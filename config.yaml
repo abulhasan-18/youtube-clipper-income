@@ -21,8 +21,8 @@ subtitles:
   outline_width: 6
 
 publishing:
-  target_daily_uploads: 50
-  interval_minutes: 28         # 24 hours * 60 min / 50 clips ≈ 28.8 minutes
+  target_daily_uploads: 96     # 4 shorts/hour * 24 hours = 96 shorts/day
+  interval_minutes: 15         # 1 short every 15 minutes 24/7
   default_visibility: "public" # public, unlisted, or private
   upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)
   channel_tags:
@@ -36,7 +36,7 @@ autopilot:
   creators_registry: "creators.yaml"
   min_video_duration_minutes: 8
   max_video_duration_minutes: 240
-  min_queue_buffer: 10         # Produces new clips whenever queue drops below 10
+  min_queue_buffer: 15         # Produces new clips whenever queue drops below 15
 
 models:
   transcriber:

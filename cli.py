@@ -41,7 +41,7 @@ def cmd_queue(args):
     clips = db.get_queued_clips(limit=50)
     today_count = db.get_todays_upload_count()
     console.rule("[bold cyan]YouTube Shorts Queue Status")
-    console.print(f"Daily uploads today: [bold yellow]{today_count}/50[/bold yellow]\n")
+    console.print(f"Daily uploads today: [bold yellow]{today_count}/96[/bold yellow] (1 every 15 minutes 24/7)\n")
 
     if not clips:
         console.print("[dim]No clips currently waiting in queue. Run 'python cli.py autopilot' or 'clip'.[/dim]\n")
@@ -97,11 +97,11 @@ def cmd_schedule(args):
     scheduler.run_scheduler_daemon()
 
 def main():
-    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 50 Shorts/Day AutoPilot")
+    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 96 Shorts/Day AutoPilot")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # autopilot command (Primary 100% automated mode)
-    auto_parser = subparsers.add_parser("autopilot", help="Start 100% autonomous 24/7 video clipping and daily 50-shorts uploading")
+    auto_parser = subparsers.add_parser("autopilot", help="Start 100% autonomous 24/7 video clipping and daily 96-shorts uploading (every 15 mins)")
     auto_parser.set_defaults(func=cmd_autopilot)
 
     # clip command
