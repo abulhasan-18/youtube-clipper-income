@@ -1,0 +1,10 @@
+.venv/
+downloads/
+output/
+temp/
+session_data/
+storage/*.db
+.git/
+.DS_Store
+__pycache__/
+*.pyc

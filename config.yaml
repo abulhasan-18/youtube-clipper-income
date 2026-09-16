@@ -1,0 +1,62 @@
+# Clipper Automation Configuration
+
+video:
+  target_width: 1080
+  target_height: 1920
+  aspect_ratio: "9:16"
+  min_clip_duration_sec: 25
+  max_clip_duration_sec: 60
+  target_fps: 30
+  reframe_mode: "face_track"  # Options: face_track, split_screen, blur_bg, center_crop
+
+subtitles:
+  enabled: true
+  style: "hormozi"            # Options: hormozi (word-by-word bold highlight), clean, minimal
+  max_words_per_line: 3
+  font_name: "Arial Black"
+  font_size: 44
+  text_color: "#FFFFFF"
+  highlight_color: "#FFE600"  # Vibrant Neon Yellow
+  outline_color: "#000000"    # Thick Black Border
+  outline_width: 6
+
+publishing:
+  target_daily_uploads: 50
+  interval_minutes: 28         # 24 hours * 60 min / 50 clips ≈ 28.8 minutes
+  default_visibility: "public" # public, unlisted, or private
+  upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)
+  channel_tags:
+    - "Shorts"
+    - "viral"
+    - "trending"
+    - "fyp"
+
+autopilot:
+  enabled: true
+  creators_registry: "creators.yaml"
+  min_video_duration_minutes: 8
+  max_video_duration_minutes: 240
+  min_queue_buffer: 10         # Produces new clips whenever queue drops below 10
+
+models:
+  transcriber:
+    provider: "groq"
+    model: "whisper-large-v3"
+  candidate_scanner:
+    provider: "groq"
+    model: "qwen/qwen3.8-27b"
+  viral_judge:
+    provider: "openrouter"
+    model: "deepseek/deepseek-chat"
+  visual_verifier:
+    provider: "gemini"
+    model: "gemini-3.6-flash"
+  copywriter:
+    provider: "groq"
+    model: "qwen/qwen3.8-27b"
+
+paths:
+  downloads: "downloads"
+  output: "output"
+  temp: "temp"
+  database: "storage/clipper.db"

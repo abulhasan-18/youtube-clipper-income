@@ -1,0 +1,27 @@
+# Environment and Secrets
+.env
+*.env
+client_secrets.json
+oauth_token.json
+
+# Storage and Media Outputs
+downloads/
+output/
+clips/
+temp/
+session_data/
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

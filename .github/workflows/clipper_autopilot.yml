@@ -1,0 +1,84 @@
+name: Autonomous AI Video Clipper & YouTube Shorts Publisher
+
+on:
+  schedule:
+    # Runs every 30 minutes to discover fresh creator videos and publish shorts
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI anytime
+
+jobs:
+  clip_and_publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install FFmpeg & System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-liberation
+
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt pillow opencv-python-headless
+          playwright install chromium --with-deps
+
+      - name: Restore SQLite Database Cache
+        uses: actions/cache@v4
+        with:
+          path: storage/clipper.db
+          key: clipper-db-${{ github.run_id }}
+          restore-keys: |
+            clipper-db-
+
+      - name: Run AutoPilot (Discover, Clip, Reframe, Publish)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          YOUTUBE_SESSION_B64: ${{ secrets.YOUTUBE_SESSION_B64 }}
+        run: |
+          # 1. Discover fresh video and produce 3-5 viral shorts
+          python -c "
+          from core.discovery import ContentDiscovery
+          from pipeline import ClipperPipeline
+          disc = ContentDiscovery()
+          v = disc.discover_next_unprocessed_video()
+          if v:
+              print(f'Discovered video: {v[\"title\"]} ({v[\"url\"]})')
+              p = ClipperPipeline()
+              p.process_video(v[\"url\"], max_clips=3)
+          else:
+              print('No new video found in this run.')
+          "
+
+          # 2. Publish next queued short to YouTube Shorts
+          python -c "
+          from storage.database import Database
+          from uploader.youtube_studio import YouTubeStudioUploader
+          import os
+
+          db = Database()
+          queued = db.get_queued_clips(limit=1)
+          if queued and os.getenv('YOUTUBE_SESSION_B64'):
+              clip = queued[0]
+              print(f'Publishing short: {clip[\"title\"]}')
+              uploader = YouTubeStudioUploader(headless=True)
+              tags = [t.strip() for t in clip[\"tags\"].split(',') if t.strip()]
+              res = uploader.upload_short(clip[\"rendered_path\"], clip[\"title\"], clip[\"description\"], tags, 'public')
+              if res.get('status') == 'success':
+                  db.mark_clip_published(clip['id'], res.get('url', ''))
+                  print('Published to YouTube!')
+          else:
+              print('No clips to publish or YOUTUBE_SESSION_B64 secret not set.')
+          "
