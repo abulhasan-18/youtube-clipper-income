@@ -28,14 +28,14 @@ class VideoProcessor:
         logger.info(f"Processing clip {input_video} in mode '{mode}' -> {output_path}...")
 
         # 1. Base Reframe filter
-        # Both blur_bg and default ensure 100% of the streamer face, content, and reactions are visible!
+        # Keeps native 16:9 widescreen video 100% intact and centers it in the 9:16 vertical Shorts canvas
         if mode in ["blur_bg", "face_track", "center_crop"]:
             base_reframe = (
                 f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
                 f"crop={self.target_width}:{self.target_height},"
-                f"boxblur=25:2,eq=brightness=-0.12:contrast=1.05[bg];"
-                f"[0:v]scale={self.target_width}:-1[fg];"
-                f"[bg][fg]overlay=0:(H-h)/2"
+                f"boxblur=25:2,eq=brightness=-0.15:contrast=1.05[bg];"
+                f"[0:v]scale={self.target_width}:-2[fg];"
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
             )
         elif mode == "split_screen":
             base_reframe = (
@@ -47,9 +47,9 @@ class VideoProcessor:
             base_reframe = (
                 f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
                 f"crop={self.target_width}:{self.target_height},"
-                f"boxblur=25:2,eq=brightness=-0.12:contrast=1.05[bg];"
-                f"[0:v]scale={self.target_width}:-1[fg];"
-                f"[bg][fg]overlay=0:(H-h)/2"
+                f"boxblur=25:2,eq=brightness=-0.15:contrast=1.05[bg];"
+                f"[0:v]scale={self.target_width}:-2[fg];"
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
             )
 
         # 2. Build Subtitle Overlays if words are available
