@@ -58,8 +58,13 @@ Generate an accurate, high-CTR YouTube Shorts title that specifically and truthf
             return data
         except Exception as e:
             logger.error(f"Copywriting failed: {e}")
+            clean_hook = " ".join((hook_text or "").strip().split()[:6]).strip(".,!?\"'")
+            if clean_hook:
+                title = f"{creator_name}: '{clean_hook}' 😂 #Shorts"
+            else:
+                title = f"{creator_name} Funniest Stream Moment 💀 #Shorts"
             return {
-                "title": f"Wait for the end... 🤯 #Shorts",
+                "title": title[:70],
                 "description": f"{hook_text}\n\n#Shorts #viral #trending",
                 "tags": ["Shorts", "viral", "trending"],
                 "pinned_comment": "What are your thoughts on this? 👇"
