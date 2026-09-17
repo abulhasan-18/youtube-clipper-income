@@ -22,7 +22,7 @@ class VideoProcessor:
         and burns dynamic Hormozi subtitles using frame overlays.
         """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        temp_dir = os.path.join(os.path.dirname(output_path), "temp_subtitles")
+        temp_dir = os.path.abspath(os.path.join(os.path.dirname(output_path), "temp_subtitles"))
         os.makedirs(temp_dir, exist_ok=True)
 
         logger.info(f"Processing clip {input_video} in mode '{mode}' -> {output_path}...")
@@ -60,10 +60,9 @@ class VideoProcessor:
         clip_duration = clip_end - clip_start
 
         if overlays:
-            # Create FFmpeg concat demuxer file
             concat_path = os.path.join(temp_dir, "subtitles_concat.txt")
             current_time = 0.0
-            blank_png = os.path.join(temp_dir, "blank.png")
+            blank_png = os.path.abspath(os.path.join(temp_dir, "blank.png"))
             from PIL import Image
             Image.new("RGBA", (self.target_width, self.target_height), (0, 0, 0, 0)).save(blank_png, "PNG")
 
@@ -72,27 +71,25 @@ class VideoProcessor:
                     start_t = item["start"]
                     end_t = item["end"]
                     dur = max(0.04, end_t - start_t)
+                    img_abs = os.path.abspath(item["image_path"])
 
-                    # If there was a gap before this subtitle, insert blank frame
+                    # If gap before subtitle, pad with blank
                     if start_t > current_time + 0.04:
                         gap_dur = start_t - current_time
                         f.write(f"file '{blank_png}'\n")
                         f.write(f"duration {gap_dur:.3f}\n")
                         current_time += gap_dur
 
-                    f.write(f"file '{item['image_path']}'\n")
+                    f.write(f"file '{img_abs}'\n")
                     f.write(f"duration {dur:.3f}\n")
                     current_time += dur
 
-                # Pad until clip end if needed
                 if current_time < clip_duration:
                     f.write(f"file '{blank_png}'\n")
                     f.write(f"duration {(clip_duration - current_time):.3f}\n")
 
-                # FFmpeg concat requires repeating the last file
                 f.write(f"file '{blank_png}'\n")
 
-            # Complex filter combining reframe and subtitle overlay
             filter_str = f"{base_reframe}[base];[base][1:v]overlay=0:0:eof_action=pass[outv]"
 
             cmd = [
@@ -129,7 +126,7 @@ class VideoProcessor:
             ]
 
         logger.info("Rendering final 9:16 vertical short with FFmpeg...")
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        subprocess.run(cmd, check=True)
         logger.info(f"Render successfully completed: {output_path}")
 
         # Cleanup temp subtitle files
