@@ -1,7 +1,90 @@
-# Registry of Monitored Creators & Channels: AMP, Sidemen, OG Crews & 10-Year Viral Classics
+# Registry of Monitored Creators & Channels: Priority Titans (WWE, MrBeast, Speed, Ray, Kai, KSI, Tota) + AMP & Sidemen
 creators:
   # =========================================================================
-  # 1. AMP (ANY MEANS POSSIBLE) MEMBERS & OFFICIAL CHANNEL
+  # 1. TOP PRIORITY TITANS (WWE, MRBEAST, ISHOWSPEED, RAY, KAI CENAT, KSI, TOTA)
+  # =========================================================================
+  - id: 101
+    name: "WWE"
+    group: "WWE"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "WWE craziest funniest moments SmackDown Raw full"
+    channel_url: "https://www.youtube.com/@WWE"
+
+  - id: 102
+    name: "WWE Top 10"
+    group: "WWE"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "WWE Top 10 unexpected wildest moments full video"
+    channel_url: "https://www.youtube.com/@WWE"
+
+  - id: 103
+    name: "MrBeast"
+    group: "MrBeast"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "MrBeast funniest challenge moments video"
+    channel_url: "https://www.youtube.com/@MrBeast"
+
+  - id: 104
+    name: "Beast Reacts"
+    group: "MrBeast"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "Beast Reacts funniest moments full video"
+    channel_url: "https://www.youtube.com/@BeastReacts"
+
+  - id: 105
+    name: "IShowSpeed"
+    group: "Top Streamers"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "IShowSpeed funniest stream moments full video"
+    channel_url: "https://www.youtube.com/@IShowSpeed"
+
+  - id: 106
+    name: "Ray (rayasianboy)"
+    group: "Top Streamers"
+    priority: "high"
+    platform: "Twitch / YouTube"
+    search_query: "Rayasianboy funniest stream moments with Kai Cenat"
+    channel_url: "https://www.youtube.com/@rayasianboy"
+
+  - id: 107
+    name: "Kai Cenat"
+    group: "AMP"
+    priority: "high"
+    platform: "Twitch / YouTube"
+    search_query: "Kai Cenat funniest moments with Ray stream"
+    channel_url: "https://www.youtube.com/@KaiCenat"
+
+  - id: 108
+    name: "KSI"
+    group: "Sidemen"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "KSI Try Not To Laugh funniest moments full video"
+    channel_url: "https://www.youtube.com/@JJ Olatunji"
+
+  - id: 109
+    name: "Tota"
+    group: "Top Streamers"
+    priority: "high"
+    platform: "Twitch / YouTube"
+    search_query: "Totapoppin funniest stream moments Ray"
+    channel_url: "https://www.youtube.com/@totapoppin"
+
+  - id: 110
+    name: "Kai, Ray & Tota"
+    group: "Top Streamers"
+    priority: "high"
+    platform: "YouTube"
+    search_query: "Kai Cenat Ray and Tota funniest stream moments"
+    channel_url: "https://www.youtube.com/@KaiCenat"
+
+  # =========================================================================
+  # 2. AMP (ANY MEANS POSSIBLE) MEMBERS & OFFICIAL CHANNEL
   # =========================================================================
   - id: 1
     name: "Kai Cenat"

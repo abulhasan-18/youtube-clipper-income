@@ -32,15 +32,24 @@ class ContentDiscovery:
         Picks a creator (shuffled for variety), searches for their latest videos/streams,
         and returns the first high-quality video that has NOT been clipped yet.
         """
+        self.creators = self._load_creators()
         if not self.creators:
             logger.error("No creators registered in creators.yaml.")
             return None
 
-        # Shuffle creators list so every run explores different creators
-        shuffled_creators = list(self.creators)
-        random.shuffle(shuffled_creators)
+        # Separate high-priority titans (WWE, MrBeast, Speed, Ray, Kai Cenat, KSI, Tota)
+        high_priority = [c for c in self.creators if c.get("priority") == "high"]
+        normal_priority = [c for c in self.creators if c.get("priority") != "high"]
+        random.shuffle(high_priority)
+        random.shuffle(normal_priority)
 
-        for creator in shuffled_creators:
+        # 90% of the time, pick from the requested priority titans
+        if high_priority and (random.random() < 0.90 or not normal_priority):
+            ordered_creators = high_priority + normal_priority
+        else:
+            ordered_creators = normal_priority + high_priority
+
+        for creator in ordered_creators:
             creator_name = creator.get("name", "Unknown")
             search_q = creator.get("search_query") or f"{creator_name} full stream"
             logger.info(f"Checking fresh videos for creator: {creator_name}...")
