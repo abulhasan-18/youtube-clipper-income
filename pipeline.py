@@ -108,15 +108,38 @@ class ClipperPipeline:
 
             console.print(f"\n[bold magenta]Processing Clip {idx}/{len(approved_clips)}[/bold magenta] ({start_t:.1f}s -> {end_t:.1f}s)")
 
-            # Generate High-CTR Metadata
-            metadata = self.copywriter.generate_metadata(topic, hook_text, video_title)
+            # Download targeted video segment first
+            raw_clip_name = f"raw_{video_id}_{idx}_{int(start_t)}.mp4"
+            raw_clip_path = self.downloader.download_clip_segment(source_url, start_t, end_t, raw_clip_name)
+
+            # Direct Whisper transcription of the exact video slice for 100% verbatim subtitle alignment
+            clip_words = []
+            clip_text = ""
+            clip_dur = max(1.0, end_t - start_t)
+            console.print(f"  [cyan]Aligning subtitles verbatim for Clip {idx} via Whisper LPU...[/cyan]")
+            try:
+                slice_data = self.transcriber.transcribe_audio(raw_clip_path)
+                clip_words = slice_data.get("words", [])
+                clip_text = slice_data.get("text", "").strip()
+                logger.info(f"Direct slice transcription matched {len(clip_words)} words: '{clip_text[:70]}...'")
+            except Exception as e:
+                logger.warning(f"Slice transcription failed: {e}. Falling back to global timestamps.")
+                clip_words = all_words
+
+            # Generate High-CTR Metadata strictly matching the actual spoken clip dialogue
+            metadata = self.copywriter.generate_metadata(
+                clip_transcript=clip_text or hook_text,
+                hook_text=hook_text,
+                creator_name=info.get("uploader", ""),
+                video_title=video_title
+            )
             clip_title = metadata.get("title", f"Viral Moment #{idx} #Shorts")
             clip_desc = metadata.get("description", "")
             tags = metadata.get("tags", ["Shorts", "viral"])
             tags_str = ",".join(tags)
 
             console.print(f"  [bold]Title:[/bold] {clip_title}")
-            console.print(f"  [bold]Hook:[/bold] {hook_text[:60]}...")
+            console.print(f"  [bold]Clip Spoken Words:[/bold] {clip_text[:70]}...")
 
             # Save clip record to DB
             clip_id = self.db.add_clip(
@@ -129,22 +152,6 @@ class ClipperPipeline:
                 description=clip_desc,
                 tags=tags_str
             )
-
-            # Download targeted video segment
-            raw_clip_name = f"raw_{video_id}_{clip_id}_{int(start_t)}.mp4"
-            raw_clip_path = self.downloader.download_clip_segment(source_url, start_t, end_t, raw_clip_name)
-
-            # Direct Whisper transcription of the exact video slice for 100% verbatim subtitle alignment
-            clip_words = []
-            clip_dur = max(1.0, end_t - start_t)
-            console.print(f"  [cyan]Aligning subtitles verbatim for Clip {idx} via Whisper LPU...[/cyan]")
-            try:
-                slice_data = self.transcriber.transcribe_audio(raw_clip_path)
-                clip_words = slice_data.get("words", [])
-                logger.info(f"Direct slice transcription matched {len(clip_words)} words.")
-            except Exception as e:
-                logger.warning(f"Slice transcription failed: {e}. Falling back to global timestamps.")
-                clip_words = all_words
 
             # If direct transcription succeeded, timestamps start at 0.0s of raw_clip_path
             if clip_words and clip_words != all_words:

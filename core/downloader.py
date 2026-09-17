@@ -34,13 +34,24 @@ class MediaDownloader:
             "url": url
         }
 
+    def _extract_video_id(self, url: str) -> str:
+        m = re.search(r"(?:v=|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})", url)
+        if m:
+            return m.group(1)
+        return re.sub(r"[^a-zA-Z0-9_-]", "_", url)[-15:]
+
     def download_audio_fast(self, url: str) -> str:
         """
         Downloads high-speed compressed audio (MP3) for Whisper transcription.
         Downloads in seconds even for 2-hour streams.
         """
-        logger.info(f"Downloading high-speed audio for {url}...")
-        output_template = os.path.join(self.downloads_dir, "%(id)s_audio.%(ext)s")
+        vid_id = self._extract_video_id(url)
+        expected_file = os.path.join(self.downloads_dir, f"{vid_id}_audio.mp3")
+        if os.path.exists(expected_file):
+            return expected_file
+
+        logger.info(f"Downloading high-speed audio for {url} (ID: {vid_id})...")
+        output_template = os.path.join(self.downloads_dir, f"{vid_id}_audio.%(ext)s")
         cmd = [
             sys.executable, "-m", "yt_dlp",
             "-x",
@@ -52,11 +63,14 @@ class MediaDownloader:
         ]
         subprocess.run(cmd, check=True)
 
-        # Locate downloaded file
+        if os.path.exists(expected_file):
+            return expected_file
+
+        # Locate exact downloaded file matching this video ID
         for f in os.listdir(self.downloads_dir):
-            if f.endswith("_audio.mp3"):
+            if f.startswith(vid_id) and f.endswith(".mp3"):
                 return os.path.join(self.downloads_dir, f)
-        raise FileNotFoundError("Audio file not found after download.")
+        raise FileNotFoundError(f"Audio file for video {vid_id} not found after download.")
 
     def download_clip_segment(self, url: str, start_time: float, end_time: float, output_filename: str) -> str:
         """
