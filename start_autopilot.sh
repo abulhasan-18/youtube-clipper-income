@@ -17,7 +17,8 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo "Starting Autonomous Clipper & Publisher (24/7 Loop)..."
-nohup "$DIR/.venv/bin/python3" "$DIR/cli.py" autopilot >> "$LOG_FILE" 2>&1 &
+# Use caffeinate to keep the Mac awake for background processing (even when screen turns off)
+nohup caffeinate -s -i "$DIR/.venv/bin/python3" "$DIR/cli.py" autopilot >> "$LOG_FILE" 2>&1 &
 PID=$!
 echo "$PID" > "$PID_FILE"
 

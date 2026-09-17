@@ -8,7 +8,8 @@ if [ -f "$PID_FILE" ]; then
     PID=$(cat "$PID_FILE")
     if ps -p "$PID" > /dev/null 2>&1; then
         echo "Stopping AutoPilot (PID: $PID)..."
-        kill "$PID"
+        pkill -P "$PID" 2>/dev/null
+        kill "$PID" 2>/dev/null
         rm -f "$PID_FILE"
         echo "✓ AutoPilot stopped successfully."
         exit 0
