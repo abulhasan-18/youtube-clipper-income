@@ -19,21 +19,37 @@ class YouTubeStudioUploader(BaseUploader):
     def _check_env_session(self):
         """If YOUTUBE_SESSION_B64 is in environment, restore it into session_dir."""
         b64_data = os.getenv("YOUTUBE_SESSION_B64")
-        if b64_data and not os.listdir(self.session_dir):
+        if b64_data and not os.path.exists(os.path.join(self.session_dir, "Default", "Cookies")):
             logger.info("Restoring YouTube session from YOUTUBE_SESSION_B64 environment variable...")
             self.import_session_b64(b64_data)
 
     def export_session_b64(self) -> str:
         """
-        Packs the authenticated browser session into a portable base64 string
-        for use in GitHub Secrets or Cloud Hosting (Render, Koyeb, Hugging Face).
+        Packs the essential cookies and authentication tokens into a portable,
+        ultra-compact base64 string (< 30 KB) that easily fits inside GitHub Secrets.
         """
         if not os.path.exists(self.session_dir) or not os.listdir(self.session_dir):
             raise ValueError(f"Session directory {self.session_dir} is empty. Run 'python cli.py login' first!")
 
+        def filter_essentials(tarinfo):
+            name = tarinfo.name
+            essentials = [
+                "profile",
+                "profile/Default",
+                "profile/Default/Cookies",
+                "profile/Default/Cookies-journal",
+                "profile/Default/Network Persistent State",
+                "profile/Default/Preferences",
+                "profile/Default/Secure Preferences",
+                "profile/Default/Local Storage",
+            ]
+            if any(name == e or name.startswith("profile/Default/Local Storage") for e in essentials):
+                return tarinfo
+            return None
+
         archive_path = "session_temp.tar.gz"
         with tarfile.open(archive_path, "w:gz") as tar:
-            tar.add(self.session_dir, arcname="profile")
+            tar.add(self.session_dir, arcname="profile", filter=filter_essentials)
 
         with open(archive_path, "rb") as f:
             encoded = base64.b64encode(f.read()).decode("utf-8")
@@ -49,24 +65,27 @@ class YouTubeStudioUploader(BaseUploader):
         with open(archive_path, "wb") as f:
             f.write(base64.b64decode(b64_str))
 
+        extract_temp = "session_temp_extract"
+        os.makedirs(extract_temp, exist_ok=True)
         with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall("session_temp_extract")
+            tar.extractall(extract_temp)
 
-        extract_dir = os.path.join("session_temp_extract", "profile")
+        extract_dir = os.path.join(extract_temp, "profile")
         if os.path.exists(extract_dir):
-            for item in os.listdir(extract_dir):
-                s = os.path.join(extract_dir, item)
-                d = os.path.join(self.session_dir, item)
-                if os.path.isdir(s):
-                    shutil.copytree(s, d, dirs_exist_ok=True)
-                else:
-                    shutil.copy2(s, d)
+            for root, dirs, files in os.walk(extract_dir):
+                rel_path = os.path.relpath(root, extract_dir)
+                target_root = os.path.join(self.session_dir, rel_path)
+                os.makedirs(target_root, exist_ok=True)
+                for f in files:
+                    src_f = os.path.join(root, f)
+                    dst_f = os.path.join(target_root, f)
+                    shutil.copy2(src_f, dst_f)
 
         # Cleanup
         if os.path.exists(archive_path):
             os.remove(archive_path)
-        if os.path.exists("session_temp_extract"):
-            shutil.rmtree("session_temp_extract")
+        if os.path.exists(extract_temp):
+            shutil.rmtree(extract_temp)
 
         logger.info(f"Successfully restored session into {self.session_dir}")
 

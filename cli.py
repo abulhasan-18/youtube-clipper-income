@@ -1,5 +1,7 @@
-import argparse
+import os
 import sys
+import argparse
+import subprocess
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -23,15 +25,35 @@ def cmd_login(args):
 
 def cmd_export_session(args):
     uploader = YouTubeStudioUploader(headless=True)
+    out_file = args.output or "youtube_session_b64.txt"
     try:
         b64_str = uploader.export_session_b64()
-        console.rule("[bold green]Exported YouTube Session for GitHub / Cloud Hosting")
+        
+        # Save to file
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(b64_str)
+
+        # Attempt to copy to macOS clipboard automatically
+        copied_to_clipboard = False
+        if sys.platform == "darwin":
+            try:
+                subprocess.run(["pbcopy"], input=b64_str.encode("utf-8"), check=True)
+                copied_to_clipboard = True
+            except Exception:
+                pass
+
+        console.rule("[bold green]YouTube Session Exported")
+        abs_path = os.path.abspath(out_file)
+        
+        clipboard_msg = "\n[bold cyan]✓ Copied directly to your Mac clipboard![/bold cyan] You can just press Cmd+V to paste." if copied_to_clipboard else ""
+
         console.print(Panel(
-            b64_str,
-            title="Copy this string into your GitHub Repository Secrets as YOUTUBE_SESSION_B64",
+            f"Saved successfully to file:\n[bold white]{abs_path}[/bold white]{clipboard_msg}\n\n"
+            "Open this file, copy the entire string, and paste it into GitHub as secret [bold green]YOUTUBE_SESSION_B64[/bold green].",
+            title="Session Exported",
             border_style="green"
         ))
-        console.print("[yellow]Keep this string secret! It contains your authenticated YouTube Studio session.[/yellow]\n")
+        console.print("[yellow]Note: Keep this file private. It is already added to .gitignore.[/yellow]\n")
     except Exception as e:
         console.print(f"[red]Error exporting session: {e}[/red]")
         console.print("Run 'python cli.py login' first to authenticate on your Mac.\n")
@@ -117,7 +139,8 @@ def main():
     login_parser.set_defaults(func=cmd_login)
 
     # export-session command
-    export_parser = subparsers.add_parser("export-session", help="Export authenticated YouTube session for GitHub Secrets or Cloud Hosting")
+    export_parser = subparsers.add_parser("export-session", help="Export authenticated YouTube session to file and clipboard")
+    export_parser.add_argument("--output", "-o", default="youtube_session_b64.txt", help="Output file path (default: youtube_session_b64.txt)")
     export_parser.set_defaults(func=cmd_export_session)
 
     # queue command
