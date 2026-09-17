@@ -23,6 +23,30 @@ def cmd_login(args):
     uploader = YouTubeStudioUploader(headless=False)
     uploader.login_session()
 
+def cmd_upload(args):
+    video_path = os.path.abspath(args.video)
+    if not os.path.exists(video_path):
+        console.print(f"[red]Error: Video file not found at {video_path}[/red]")
+        return
+    uploader = YouTubeStudioUploader(headless=args.headless)
+    console.rule("[bold cyan]Uploading Short to YouTube Studio")
+    console.print(f"Video: [yellow]{video_path}[/yellow]")
+    console.print(f"Mode:  [magenta]{'Headless' if args.headless else 'Visible UI (Browser window)'}[/magenta]")
+    console.print(f"Visibility: [green]{args.visibility}[/green]\n")
+    try:
+        res = uploader.upload_short(
+            video_path=video_path,
+            title=args.title or "HE DID WHAT?! 😱 #Shorts",
+            description=args.description or "Insane gaming moments from the stream! #Shorts #viral #gaming",
+            tags=["Shorts", "viral", "trending", "gaming"],
+            visibility=args.visibility
+        )
+        console.print("\n[bold green]✓ Upload Successful![/bold green]")
+        console.print(f"URL: [bold yellow]{res.get('url')}[/bold yellow]\n")
+    except Exception as e:
+        console.print(f"[bold red]Upload failed:[/bold red] {e}")
+        raise e
+
 def cmd_export_session(args):
     uploader = YouTubeStudioUploader(headless=True)
     out_file = args.output or "youtube_session_b64.txt"
@@ -137,6 +161,15 @@ def main():
     # login command
     login_parser = subparsers.add_parser("login", help="One-time login to YouTube Studio for quota-free uploads")
     login_parser.set_defaults(func=cmd_login)
+
+    # upload command
+    upload_parser = subparsers.add_parser("upload", help="Upload a video to YouTube Studio")
+    upload_parser.add_argument("video", help="Path to video file (mp4)")
+    upload_parser.add_argument("--title", help="Custom video title")
+    upload_parser.add_argument("--description", help="Custom video description")
+    upload_parser.add_argument("--visibility", choices=["public", "unlisted", "private"], default="public", help="Visibility (default: public)")
+    upload_parser.add_argument("--no-headless", dest="headless", action="store_false", default=True, help="Run browser with visible UI")
+    upload_parser.set_defaults(func=cmd_upload)
 
     # export-session command
     export_parser = subparsers.add_parser("export-session", help="Export authenticated YouTube session to file and clipboard")
