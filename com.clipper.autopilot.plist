@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.clipper.autopilot</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/mohammedabulhasan/Projects/Clipper Automation </string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-s</string>
+        <string>-i</string>
+        <string>/Users/mohammedabulhasan/Projects/Clipper Automation /.venv/bin/python3</string>
+        <string>/Users/mohammedabulhasan/Projects/Clipper Automation /cli.py</string>
+        <string>autopilot</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/mohammedabulhasan/Projects/Clipper Automation /autopilot.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/mohammedabulhasan/Projects/Clipper Automation /autopilot.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
