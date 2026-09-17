@@ -7,7 +7,7 @@ video:
   min_clip_duration_sec: 25
   max_clip_duration_sec: 60
   target_fps: 30
-  reframe_mode: "face_track"  # Options: face_track, split_screen, blur_bg, center_crop
+  reframe_mode: "blur_bg"  # Options: blur_bg (100% face & content visible), split_screen, face_track
 
 subtitles:
   enabled: true

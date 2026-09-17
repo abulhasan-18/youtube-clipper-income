@@ -28,19 +28,14 @@ class VideoProcessor:
         logger.info(f"Processing clip {input_video} in mode '{mode}' -> {output_path}...")
 
         # 1. Base Reframe filter
-        if mode == "face_track":
-            center_x_norm = self.face_tracker.analyze_speaker_trajectory(input_video)
-            base_reframe = (
-                f"crop=w=ih*(9/16):h=ih:x='min(max(0, iw*{center_x_norm} - (ih*(9/16))/2), iw - ih*(9/16))':y=0,"
-                f"scale={self.target_width}:{self.target_height}"
-            )
-        elif mode == "blur_bg":
+        # Both blur_bg and default ensure 100% of the streamer face, content, and reactions are visible!
+        if mode in ["blur_bg", "face_track", "center_crop"]:
             base_reframe = (
                 f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
                 f"crop={self.target_width}:{self.target_height},"
-                f"boxblur=luma_radius=min(h\\,w)/20:luma_power=2[bg];"
+                f"boxblur=25:2,eq=brightness=-0.12:contrast=1.05[bg];"
                 f"[0:v]scale={self.target_width}:-1[fg];"
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
+                f"[bg][fg]overlay=0:(H-h)/2"
             )
         elif mode == "split_screen":
             base_reframe = (
@@ -48,8 +43,14 @@ class VideoProcessor:
                 f"[0:v]crop=iw*2/3:ih:iw/3:0,scale={self.target_width}:{self.target_height//2}[bot];"
                 f"[top][bot]vstack"
             )
-        else: # Center crop
-            base_reframe = f"crop=ih*(9/16):ih,scale={self.target_width}:{self.target_height}"
+        else:
+            base_reframe = (
+                f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
+                f"crop={self.target_width}:{self.target_height},"
+                f"boxblur=25:2,eq=brightness=-0.12:contrast=1.05[bg];"
+                f"[0:v]scale={self.target_width}:-1[fg];"
+                f"[bg][fg]overlay=0:(H-h)/2"
+            )
 
         # 2. Build Subtitle Overlays if words are available
         overlays = self.subtitle_engine.create_subtitle_overlays(

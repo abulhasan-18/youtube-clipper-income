@@ -1,302 +1,363 @@
-# Registry of Top 50 Monitored Creators & Streamers
+# Registry of Monitored Creators & Channels: AMP, Sidemen, OG Crews & 10-Year Viral Classics
 creators:
+  # =========================================================================
+  # 1. AMP (ANY MEANS POSSIBLE) MEMBERS & OFFICIAL CHANNEL
+  # =========================================================================
   - id: 1
-    name: "IShowSpeed"
-    platform: "YouTube"
-    country: "USA"
-    search_query: "IShowSpeed stream full"
-    channel_url: "https://www.youtube.com/@IShowSpeed"
-  - id: 2
     name: "Kai Cenat"
+    group: "AMP"
     platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Kai Cenat stream VOD full"
+    search_query: "Kai Cenat stream funny moments"
     channel_url: "https://www.youtube.com/@KaiCenat"
-  - id: 3
-    name: "Ibai"
-    platform: "Twitch / YouTube"
-    country: "Spain"
-    search_query: "Ibai Llanos directo completo"
-    channel_url: "https://www.youtube.com/@ibaillanos"
-  - id: 4
-    name: "xQc"
-    platform: "Twitch / Kick / YouTube"
-    country: "Canada"
-    search_query: "xQc full stream VOD"
-    channel_url: "https://www.youtube.com/@xQcOW"
-  - id: 5
-    name: "Adin Ross"
-    platform: "Kick / YouTube"
-    country: "USA"
-    search_query: "Adin Ross full stream"
-    channel_url: "https://www.youtube.com/@AdinLive"
-  - id: 6
-    name: "Ninja"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Ninja gaming stream full"
-    channel_url: "https://www.youtube.com/@Ninja"
-  - id: 7
-    name: "MrBeast"
-    platform: "YouTube"
-    country: "USA"
-    search_query: "MrBeast new video"
-    channel_url: "https://www.youtube.com/@MrBeast"
-  - id: 8
-    name: "AuronPlay"
-    platform: "Twitch / YouTube"
-    country: "Spain"
-    search_query: "AuronPlay directo completo"
-    channel_url: "https://www.youtube.com/@Auron"
-  - id: 9
-    name: "Rubius"
-    platform: "Twitch / YouTube"
-    country: "Spain"
-    search_query: "elrubiusOMG directo"
-    channel_url: "https://www.youtube.com/@elrubiusOMG"
-  - id: 10
-    name: "TheGrefg"
-    platform: "Twitch / YouTube"
-    country: "Spain"
-    search_query: "TheGrefg directo completo"
-    channel_url: "https://www.youtube.com/@TheGrefg"
-  - id: 11
-    name: "Pokimane"
-    platform: "Twitch / YouTube"
-    country: "Canada"
-    search_query: "Pokimane podcast stream"
-    channel_url: "https://www.youtube.com/@pokimane"
-  - id: 12
-    name: "Jynxzi"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Jynxzi full stream"
-    channel_url: "https://www.youtube.com/@Jynxzi"
-  - id: 13
-    name: "Shroud"
-    platform: "Twitch / YouTube"
-    country: "Canada"
-    search_query: "Shroud full gameplay stream"
-    channel_url: "https://www.youtube.com/@shroud"
-  - id: 14
-    name: "HasanAbi"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "HasanAbi full stream react"
-    channel_url: "https://www.youtube.com/@HasanAbi"
-  - id: 15
-    name: "CaseOh"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "CaseOh full gameplay stream"
-    channel_url: "https://www.youtube.com/@CaseOh_"
-  - id: 16
-    name: "Clix"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Clix tournament stream"
-    channel_url: "https://www.youtube.com/@Clix"
-  - id: 17
-    name: "Stable Ronaldo"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Stable Ronaldo stream VOD"
-    channel_url: "https://www.youtube.com/@stableronaldo"
-  - id: 18
+
+  - id: 2
     name: "Fanum"
+    group: "AMP"
     platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Fanum live stream"
-    channel_url: "https://www.youtube.com/@FanumLive"
-  - id: 19
-    name: "PlaqueBoyMax"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "PlaqueBoyMax stream VOD"
-    channel_url: "https://www.youtube.com/@PlaqueBoyMax"
-  - id: 20
-    name: "Cinna"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Cinna twitch stream"
-    channel_url: "https://www.youtube.com/@cinnatwitch"
-  - id: 21
-    name: "Ludwig"
-    platform: "YouTube / Twitch"
-    country: "USA"
-    search_query: "Ludwig stream full"
-    channel_url: "https://www.youtube.com/@ludwig"
-  - id: 22
-    name: "Valkyrae"
+    search_query: "Fanum stream funny moments AMP"
+    channel_url: "https://www.youtube.com/@JustFanum"
+
+  - id: 3
+    name: "Agent 00"
+    group: "AMP"
     platform: "YouTube"
-    country: "USA"
-    search_query: "Valkyrae stream full"
-    channel_url: "https://www.youtube.com/@valkyrae"
-  - id: 23
-    name: "AMP"
-    platform: "YouTube / Twitch"
-    country: "USA"
-    search_query: "AMP house video new"
-    channel_url: "https://www.youtube.com/@AMPEXCLUSIVE"
-  - id: 24
-    name: "ElMariana"
-    platform: "Twitch / YouTube"
-    country: "Mexico"
-    search_query: "ElMariana directo stream"
-    channel_url: "https://www.youtube.com/@ElMariana"
-  - id: 25
-    name: "JuanSGuarnizo"
-    platform: "Twitch / YouTube"
-    country: "Colombia"
-    search_query: "JuanSGuarnizo directo"
-    channel_url: "https://www.youtube.com/@JuanSGuarnizo"
-  - id: 26
-    name: "Casimito"
-    platform: "Twitch / YouTube"
-    country: "Brazil"
-    search_query: "Casimiro Cortes live react"
-    channel_url: "https://www.youtube.com/@CortesdoCasimitoOficial"
-  - id: 27
-    name: "WestCOL"
-    platform: "Kick / YouTube"
-    country: "Colombia"
-    search_query: "WestCOL stream kick directo"
-    channel_url: "https://www.youtube.com/@WestCOL"
-  - id: 28
-    name: "MrStivenTC"
-    platform: "Kick / YouTube"
-    country: "Colombia"
-    search_query: "MrStivenTC directo kick"
-    channel_url: "https://www.youtube.com/@MrStivenTc"
-  - id: 29
-    name: "Buddha"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Buddha GTA RP stream"
-    channel_url: "https://www.youtube.com/@BuddhaRP"
-  - id: 30
-    name: "Trainwreckstv"
-    platform: "Kick / YouTube"
-    country: "USA"
-    search_query: "Trainwreckstv podcast stream"
-    channel_url: "https://www.youtube.com/@Trainwreckstv"
-  - id: 31
-    name: "Amouranth"
-    platform: "Kick / YouTube"
-    country: "USA"
-    search_query: "Amouranth stream interview"
-    channel_url: "https://www.youtube.com/@Amouranth"
-  - id: 32
-    name: "Hasan"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "HasanAbi debate podcast"
-    channel_url: "https://www.youtube.com/@HasanAbi"
-  - id: 33
-    name: "Tarik"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Tarik valorant stream watchparty"
-    channel_url: "https://www.youtube.com/@tarik"
-  - id: 34
+    search_query: "Agent 00 funny moments stream"
+    channel_url: "https://www.youtube.com/@Agent00"
+
+  - id: 4
     name: "Duke Dennis"
-    platform: "YouTube / Twitch"
-    country: "USA"
-    search_query: "Duke Dennis AMP vlog"
-    channel_url: "https://www.youtube.com/@DukeDennisGaming"
+    group: "AMP"
+    platform: "YouTube"
+    search_query: "Duke Dennis funny moments AMP"
+    channel_url: "https://www.youtube.com/@DukeDennis"
+
+  - id: 5
+    name: "ChrisNxtDoor"
+    group: "AMP"
+    platform: "YouTube"
+    search_query: "Chrisnxtdoor funny stream moments"
+    channel_url: "https://www.youtube.com/@ChrisNxtDoor"
+
+  - id: 6
+    name: "ImDavisss"
+    group: "AMP"
+    platform: "YouTube"
+    search_query: "ImDavisss funny stream moments"
+    channel_url: "https://www.youtube.com/@ImDavisss"
+
+  - id: 7
+    name: "AMP Official"
+    group: "AMP"
+    platform: "YouTube"
+    search_query: "AMP house funny moments full video"
+    channel_url: "https://www.youtube.com/@AMPEXCLUSIVE"
+
+  # =========================================================================
+  # 2. SIDEMEN & EVERY SIDEMEN MEMBER
+  # =========================================================================
+  - id: 8
+    name: "Sidemen"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Sidemen Sunday funniest moments full video"
+    channel_url: "https://www.youtube.com/@Sidemen"
+
+  - id: 9
+    name: "MoreSidemen"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "MoreSidemen gaming funniest moments full"
+    channel_url: "https://www.youtube.com/@MoreSidemen"
+
+  - id: 10
+    name: "Sidemen Reacts"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Sidemen Reacts funniest moments"
+    channel_url: "https://www.youtube.com/@SidemenReacts"
+
+  - id: 11
+    name: "KSI"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "KSI Try Not To Laugh funniest moments full video"
+    channel_url: "https://www.youtube.com/@JJ Olatunji"
+
+  - id: 12
+    name: "W2S (Harry Lewis)"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "W2S funniest moments full video"
+    channel_url: "https://www.youtube.com/@W2S"
+
+  - id: 13
+    name: "Miniminter"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Miniminter funniest moments podcast stream"
+    channel_url: "https://www.youtube.com/@Miniminter"
+
+  - id: 14
+    name: "Zerkaa"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Zerkaa funniest moments stream video"
+    channel_url: "https://www.youtube.com/@Zerkaa"
+
+  - id: 15
+    name: "TBJZL"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "TBJZL funniest gaming moments"
+    channel_url: "https://www.youtube.com/@TBJZL"
+
+  - id: 16
+    name: "Behzinga"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Behzinga funniest moments video"
+    channel_url: "https://www.youtube.com/@Behzinga"
+
+  - id: 17
+    name: "Vikkstar123"
+    group: "Sidemen"
+    platform: "YouTube"
+    search_query: "Vikkstar funniest moments full video"
+    channel_url: "https://www.youtube.com/@Vikkstar123"
+
+  # =========================================================================
+  # 3. OG CREW MEMBERS & BETA SQUAD
+  # =========================================================================
+  - id: 18
+    name: "Beta Squad"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "Beta Squad funniest moments full video"
+    channel_url: "https://www.youtube.com/@BetaSquad"
+
+  - id: 19
+    name: "Niko Omilana"
+    group: "Beta Squad"
+    platform: "YouTube"
+    search_query: "Niko Omilana funniest prank video"
+    channel_url: "https://www.youtube.com/@Niko"
+
+  - id: 20
+    name: "Chunkz"
+    group: "Beta Squad"
+    platform: "YouTube"
+    search_query: "Chunkz and Filly funniest moments video"
+    channel_url: "https://www.youtube.com/@Chunkz"
+
+  - id: 21
+    name: "Yung Filly"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "Yung Filly funniest moments video"
+    channel_url: "https://www.youtube.com/@YungFilly"
+
+  - id: 22
+    name: "AJ Shabeel"
+    group: "Beta Squad"
+    platform: "YouTube"
+    search_query: "AJ Shabeel challenge video funniest"
+    channel_url: "https://www.youtube.com/@AJShabeel"
+
+  - id: 23
+    name: "Sharky"
+    group: "Beta Squad"
+    platform: "YouTube"
+    search_query: "Sharky Beta Squad funniest video"
+    channel_url: "https://www.youtube.com/@Sharky"
+
+  - id: 24
+    name: "KingKennyTv"
+    group: "Beta Squad"
+    platform: "YouTube"
+    search_query: "King Kenny challenge video funniest"
+    channel_url: "https://www.youtube.com/@KingKennyTv"
+
+  - id: 25
+    name: "RDCWorld1"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "RDCWorld1 anime in real life skit funniest"
+    channel_url: "https://www.youtube.com/@RDCworld1"
+
+  - id: 26
+    name: "MoistCr1TiKaL (Penguinz0)"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "penguinz0 funniest commentary video"
+    channel_url: "https://www.youtube.com/@penguinz0"
+
+  - id: 27
+    name: "SomeOrdinaryGamers"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "SomeOrdinaryGamers funniest moments video"
+    channel_url: "https://www.youtube.com/@SomeOrdinaryGamers"
+
+  - id: 28
+    name: "Sidemen vs Beta Squad"
+    group: "OG Crew"
+    platform: "YouTube"
+    search_query: "Sidemen vs Beta Squad charity match funniest moments"
+    channel_url: "https://www.youtube.com/@Sidemen"
+
+  # =========================================================================
+  # 4. VIRAL VIDEOS FROM PAST 10 YEARS (2014-2024 CLASSIC GOLD)
+  # =========================================================================
+  - id: 29
+    name: "Joe Rogan Experience"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Joe Rogan funniest podcast moment full video"
+    channel_url: "https://www.youtube.com/@joerogan"
+
+  - id: 30
+    name: "Flagrant (Andrew Schulz)"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Andrew Schulz Flagrant funniest podcast moment"
+    channel_url: "https://www.youtube.com/@Flagrant2"
+
+  - id: 31
+    name: "Impaulsive"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Impaulsive podcast funniest moments full video"
+    channel_url: "https://www.youtube.com/@Impaulsive"
+
+  - id: 32
+    name: "The Yard"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "The Yard podcast funniest moments full"
+    channel_url: "https://www.youtube.com/@TheYardPodcast"
+
+  - id: 33
+    name: "Trash Taste"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Trash Taste podcast funniest moments full"
+    channel_url: "https://www.youtube.com/@TrashTaste"
+
+  - id: 34
+    name: "MrBeast Classic"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "MrBeast challenge viral funniest video"
+    channel_url: "https://www.youtube.com/@MrBeast"
+
   - id: 35
-    name: "TimTheTatman"
+    name: "IShowSpeed Classic"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "TimTheTatman full stream"
-    channel_url: "https://www.youtube.com/@TimTheTatman"
+    search_query: "IShowSpeed funniest viral stream moments"
+    channel_url: "https://www.youtube.com/@IShowSpeed"
+
   - id: 36
-    name: "Dr DisRespect"
+    name: "PewDiePie Classic"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "Dr DisRespect stream"
-    channel_url: "https://www.youtube.com/@DrDisRespect"
-  - id: 37
-    name: "Nickmercs"
-    platform: "Kick / YouTube"
-    country: "USA"
-    search_query: "Nickmercs stream live"
-    channel_url: "https://www.youtube.com/@NICKMERCS"
-  - id: 38
-    name: "Summit1g"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Summit1g stream gameplay"
-    channel_url: "https://www.youtube.com/@summit1g"
-  - id: 39
-    name: "Sodapoppin"
-    platform: "Twitch / YouTube"
-    country: "USA"
-    search_query: "Sodapoppin stream VOD"
-    channel_url: "https://www.youtube.com/@sodapoppin"
-  - id: 40
-    name: "PewDiePie"
-    platform: "YouTube"
-    country: "Sweden"
-    search_query: "PewDiePie new video"
+    search_query: "PewDiePie funniest meme review lwiay"
     channel_url: "https://www.youtube.com/@PewDiePie"
+
+  - id: 37
+    name: "Jynxzi"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Jynxzi funniest rage moments full stream"
+    channel_url: "https://www.youtube.com/@Jynxzi"
+
+  - id: 38
+    name: "Tarik"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Tarik funniest valorant stream moments"
+    channel_url: "https://www.youtube.com/@tarik"
+
+  - id: 39
+    name: "xQc Classic"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "xQc funniest stream rage moments full"
+    channel_url: "https://www.youtube.com/@xQcOW"
+
+  - id: 40
+    name: "CaseOh"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "CaseOh funniest stream moments full video"
+    channel_url: "https://www.youtube.com/@CaseOh"
+
   - id: 41
-    name: "Markiplier"
+    name: "Markiplier Classic"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "Markiplier gameplay video"
+    search_query: "Markiplier funniest moments classic video"
     channel_url: "https://www.youtube.com/@markiplier"
+
   - id: 42
-    name: "CoryxKenshin"
+    name: "Ludwig"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "CoryxKenshin video new"
-    channel_url: "https://www.youtube.com/@CoryxKenshin"
+    search_query: "Ludwig funniest stream challenge full video"
+    channel_url: "https://www.youtube.com/@ludwig"
+
   - id: 43
-    name: "CaseyNeistat"
+    name: "CoryxKenshin"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "Casey Neistat vlog"
-    channel_url: "https://www.youtube.com/@casey"
+    search_query: "CoryxKenshin funniest moments spooky scary sunday"
+    channel_url: "https://www.youtube.com/@CoryxKenshin"
+
   - id: 44
-    name: "Speedy Morman"
+    name: "FlightReacts"
+    group: "10-Year Viral"
     platform: "YouTube"
-    country: "USA"
-    search_query: "Speedy Morman interview full"
-    channel_url: "https://www.youtube.com/@Complex"
+    search_query: "FlightReacts funniest rage moments full"
+    channel_url: "https://www.youtube.com/@FlightReacts"
+
   - id: 45
-    name: "Baka Prase"
-    platform: "Kick / YouTube"
-    country: "Serbia"
-    search_query: "Baka Prase stream live"
-    channel_url: "https://www.youtube.com/@BakaPrase"
+    name: "Berleezy"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Berleezy funniest gaming moments full video"
+    channel_url: "https://www.youtube.com/@Berleezy"
+
   - id: 46
-    name: "Davoo Xeneize"
-    platform: "Kick / YouTube"
-    country: "Argentina"
-    search_query: "Davoo Xeneize directo futbol"
-    channel_url: "https://www.youtube.com/@DavooXeneize"
+    name: "Theo Von"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Theo Von funniest podcast moments full"
+    channel_url: "https://www.youtube.com/@TheoVon"
+
   - id: 47
-    name: "Eray Özkenar"
-    platform: "Kick / YouTube"
-    country: "Turkey"
-    search_query: "Eray yayin kick"
-    channel_url: "https://www.youtube.com/@ErayOzkenar"
+    name: "Bad Friends"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Bad Friends podcast funniest moments full"
+    channel_url: "https://www.youtube.com/@BadFriends"
+
   - id: 48
-    name: "Lacobraaa"
-    platform: "Kick / YouTube"
-    country: "Spain"
-    search_query: "Lacobra stream directo"
-    channel_url: "https://www.youtube.com/@lacobraaa"
+    name: "2 Bears 1 Cave"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "2 Bears 1 Cave funniest moments full"
+    channel_url: "https://www.youtube.com/@2Bears1Cave"
+
   - id: 49
-    name: "EasyLiker"
-    platform: "Twitch / YouTube"
-    country: "Russia"
-    search_query: "EasyLiker stream twitch"
-    channel_url: "https://www.youtube.com/@EasyLiker"
+    name: "Sneako Viral"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "Sneako funniest stream debates full"
+    channel_url: "https://www.youtube.com/@SNEAKO"
+
   - id: 50
-    name: "Pestily"
-    platform: "Twitch / YouTube"
-    country: "Australia"
-    search_query: "Pestily tarkov stream full"
-    channel_url: "https://www.youtube.com/@Pestily"
+    name: "Classic Viral Gold"
+    group: "10-Year Viral"
+    platform: "YouTube"
+    search_query: "most viral funny gaming stream moments full video"
+    channel_url: "https://www.youtube.com"
