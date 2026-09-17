@@ -33,8 +33,9 @@ class AutoPilotService:
         self.reframe_mode = self.config.get("video", {}).get("reframe_mode", "face_track")
 
         backend = self.config.get("publishing", {}).get("upload_backend", "studio")
+        headless_mode = self.config.get("publishing", {}).get("headless", False)
         if backend == "studio":
-            self.uploader = YouTubeStudioUploader(headless=True)
+            self.uploader = YouTubeStudioUploader(headless=headless_mode)
         else:
             self.uploader = YouTubeAPIUploader()
 
@@ -65,32 +66,7 @@ class AutoPilotService:
 
                 console.print(f"\n[bold][{now_str}][/bold] Today: [yellow]{today_count}/{self.target_daily}[/yellow] uploads | Ready in Queue: [cyan]{queued_count}[/cyan] clips")
 
-                # 1. PRODUCTION STAGE: If queue buffer is low (< 15 clips), discover & produce new shorts
-                if queued_count < 15 and today_count < self.target_daily:
-                    console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
-                    next_video = self.discovery.discover_next_unprocessed_video()
-
-                    if next_video:
-                        url = next_video["url"]
-                        creator = next_video.get("creator_name", "Creator")
-                        title = next_video.get("title", "Video")
-                        console.print(f"[bold yellow]Ingesting fresh stream/video from {creator}:[/bold yellow] {title}")
-
-                        try:
-                            # Extract 4-5 high-virality clips from this video
-                            new_clips = self.pipeline.process_video(
-                                source_url=url,
-                                max_clips=4,
-                                reframe_mode=self.reframe_mode
-                            )
-                            console.print(f"[green]Produced {len(new_clips)} new viral shorts into queue.[/green]")
-                        except Exception as pe:
-                            logger.error(f"Failed processing video {url}: {pe}. Marking failed and continuing...")
-                            self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
-                    else:
-                        console.print("[dim]No new videos found right now. Will check again in next cycle.[/dim]")
-
-                # 2. PUBLISHING STAGE: Check if 15 minutes have passed since last upload
+                # 1. PUBLISHING STAGE: If it's time to upload and we have queued clips, upload immediately!
                 time_since_last = time.time() - self.last_upload_time
                 is_time_to_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.interval_sec)
 
@@ -119,6 +95,32 @@ class AutoPilotService:
 
                 elif today_count >= self.target_daily:
                     console.print("[bold green]Daily target of 96 uploads completed for today! Resting until midnight.[/bold green]")
+
+                # 2. PRODUCTION STAGE: If ready queue buffer is low (< 5 clips), discover & produce new shorts
+                queued_count = self.db.get_queued_count()
+                if queued_count < 5 and today_count < self.target_daily:
+                    console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
+                    next_video = self.discovery.discover_next_unprocessed_video()
+
+                    if next_video:
+                        url = next_video["url"]
+                        creator = next_video.get("creator_name", "Creator")
+                        title = next_video.get("title", "Video")
+                        console.print(f"[bold yellow]Ingesting fresh stream/video from {creator}:[/bold yellow] {title}")
+
+                        try:
+                            # Extract 4 high-virality clips from this video
+                            new_clips = self.pipeline.process_video(
+                                source_url=url,
+                                max_clips=4,
+                                reframe_mode=self.reframe_mode
+                            )
+                            console.print(f"[green]Produced {len(new_clips)} new viral shorts into queue.[/green]")
+                        except Exception as pe:
+                            logger.error(f"Failed processing video {url}: {pe}. Marking failed and continuing...")
+                            self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
+                    else:
+                        console.print("[dim]No new videos found right now. Will check again in next cycle.[/dim]")
 
                 # 3. MAINTENANCE: Clean up temporary files in downloads/ and temp/
                 self._cleanup_temp_files()

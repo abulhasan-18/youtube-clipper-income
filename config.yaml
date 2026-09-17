@@ -24,6 +24,7 @@ publishing:
   target_daily_uploads: 96     # 4 shorts/hour * 24 hours = 96 shorts/day
   interval_minutes: 15         # 1 short every 15 minutes 24/7
   default_visibility: "public" # public, unlisted, or private
+  headless: false              # Visible window avoids Google bot detection on Mac
   upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)
   channel_tags:
     - "Shorts"
