@@ -127,12 +127,16 @@ class YouTubeStudioUploader(BaseUploader):
 
         logger.info(f"Starting automated Studio upload for: {title}")
         with sync_playwright() as p:
+            extra_args = ["--disable-blink-features=AutomationControlled"]
+            if self.headless:
+                extra_args.append("--headless=new")
+
             browser = p.chromium.launch_persistent_context(
                 user_data_dir=self.session_dir,
                 headless=self.headless,
                 user_agent=DEFAULT_USER_AGENT,
-                channel=None,
-                args=["--disable-blink-features=AutomationControlled"]
+                channel="chrome" if os.path.exists("/Applications/Google Chrome.app") else None,
+                args=extra_args
             )
             page = browser.new_page()
 
