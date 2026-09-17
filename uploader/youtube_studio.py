@@ -171,11 +171,17 @@ class YouTubeStudioUploader(BaseUploader):
 
                 # Set file input
                 logger.info("Selecting video file...")
-                with page.expect_file_chooser(timeout=30000) as fc_info:
-                    select_btn = page.locator("#select-files-button, input[type='file']").first
-                    select_btn.click(force=True)
-                file_chooser = fc_info.value
-                file_chooser.set_files(video_path)
+                try:
+                    file_input = page.locator("input[type='file']").first
+                    file_input.wait_for(state="attached", timeout=20000)
+                    file_input.set_input_files(video_path)
+                except Exception as fe:
+                    logger.info(f"Direct set_input_files failed ({fe}), falling back to file chooser...")
+                    with page.expect_file_chooser(timeout=30000) as fc_info:
+                        select_btn = page.locator("#select-files-button, input[type='file']").first
+                        select_btn.click(force=True)
+                    file_chooser = fc_info.value
+                    file_chooser.set_files(video_path)
 
                 # Wait for upload modal
                 logger.info("Waiting for upload details dialog...")
