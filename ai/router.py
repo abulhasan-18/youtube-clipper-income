@@ -96,11 +96,13 @@ class AIRouter:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        # Groq on-demand tier enforces a strict 1000 Output Tokens Per Minute (OTPM) limit
+        groq_max_tokens = min(max_tokens, 800)
         kwargs = {
             "model": "qwen/qwen3.8-27b",
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": max_tokens,
+            "max_tokens": groq_max_tokens,
         }
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}

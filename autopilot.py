@@ -29,14 +29,15 @@ class AutoPilotService:
         self.pipeline = ClipperPipeline(config_path=config_path)
         self.vyro_hub = VyroMonetizationHub(db=self.db)
 
-        # Publishing settings: Instant upload as soon as video is ready
-        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 96)
-        self.cooldown_sec = self.config.get("publishing", {}).get("cooldown_seconds", 10)
+        # Publishing & batch clipping settings
+        self.batch_target = self.config.get("autopilot", {}).get("batch_target", 200)
+        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 200)
+        self.cooldown_sec = self.config.get("publishing", {}).get("cooldown_seconds", 5)
         self.visibility = self.config.get("publishing", {}).get("default_visibility", "public")
         self.reframe_mode = self.config.get("video", {}).get("reframe_mode", "face_track")
 
         backend = self.config.get("publishing", {}).get("upload_backend", "studio")
-        headless_mode = self.config.get("publishing", {}).get("headless", False)
+        headless_mode = self.config.get("publishing", {}).get("headless", True)
         if backend == "studio":
             self.uploader = YouTubeStudioUploader(headless=headless_mode)
         else:
@@ -45,19 +46,24 @@ class AutoPilotService:
         self.multi_dispatcher = MultiPlatformDispatcher(youtube_uploader=self.uploader, db=self.db)
         self.last_upload_time = 0.0
 
+        # State machine: "clipping" (produce 200 clips first) -> "uploading" (upload 1-by-1 once clipping is done)
+        current_queue = self.db.get_queued_count()
+        self.mode = "uploading" if current_queue >= self.batch_target else "clipping"
+
     def run_autonomous_loop(self):
         """
         100% Autonomous 24/7 Loop:
-        - Instant Upload: As soon as a clip is ready, immediately upload to YouTube Studio
-        - Instant Repeat: Once uploaded, logged, and cleaned up, immediately process next clip/video
+        1. Batch Clipping Stage: Clip & render 200 viral shorts into queue first
+        2. Sequential Uploading Stage: Once 200 are ready, upload one-by-one to YouTube Studio
         """
-        console.rule("[bold cyan]🤖 Clipper AutoPilot: Instant Upload 24/7 Service")
+        console.rule("[bold cyan]🤖 Clipper AutoPilot: 200 Videos Batch Clipping & Upload Service")
         console.print(Panel(
-            f"[bold green]Monitored Creators:[/bold green] 50 Top Streamers (IShowSpeed, Kai Cenat, Sidemen, AMP, etc.)\n"
-            f"[bold green]Target Output:[/bold green] {self.target_daily} Viral Shorts / Day\n"
-            f"[bold green]Upload Cadence:[/bold green] Instant (as soon as video is ready)\n"
-            f"[bold green]Auto-Reframe:[/bold green] 9:16 Vertical with Centered 16:9 Video & Hormozi Captions",
-            title="AutoPilot Initialized (Instant Upload Mode)",
+            f"[bold green]Monitored Creators:[/bold green] 44 Exclusive Top Creators (IShowSpeed, Kai Cenat, Sidemen, AMP, WWE, etc.)\n"
+            f"[bold green]Daily Target Output:[/bold green] {self.target_daily} Viral Shorts / Day\n"
+            f"[bold green]Batch Target:[/bold green] Clip {self.batch_target} videos first, then upload 1-by-1\n"
+            f"[bold green]Current Mode:[/bold green] {self.mode.upper()}\n"
+            f"[bold green]Auto-Reframe:[/bold green] 9:16 Vertical with Centered Video & Hormozi Captions",
+            title="AutoPilot Initialized (200 Shorts / Day)",
             border_style="cyan"
         ))
 
@@ -67,99 +73,116 @@ class AutoPilotService:
                 queued_count = self.db.get_queued_count()
                 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                console.print(f"\n[bold][{now_str}][/bold] Today: [yellow]{today_count}/{self.target_daily}[/yellow] uploads | Ready in Queue: [cyan]{queued_count}[/cyan] clips")
+                # State machine transition:
+                if self.mode == "clipping" and queued_count >= self.batch_target:
+                    console.print(f"\n[bold green]🎉 Batch clipping target reached ({queued_count}/{self.batch_target} clips)! Switching to sequential upload mode...[/bold green]")
+                    self.mode = "uploading"
+                elif self.mode == "uploading" and queued_count == 0:
+                    console.print("\n[bold green]All queued clips uploaded! Switching back to batch clipping mode...[/bold green]")
+                    self.mode = "clipping"
 
-                # 1. PUBLISHING STAGE: If any clip is ready in queue, upload immediately to YouTube Studio!
-                time_since_last = time.time() - self.last_upload_time
-                can_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.cooldown_sec)
+                console.print(f"\n[bold][{now_str}][/bold] Mode: [bold magenta]{self.mode.upper()}[/bold magenta] | Today Uploaded: [yellow]{today_count}/{self.target_daily}[/yellow] | Ready in Queue: [cyan]{queued_count}/{self.batch_target}[/cyan] clips")
 
-                if can_upload and queued_count > 0 and today_count < self.target_daily:
-                    queued_clips = self.db.get_queued_clips(limit=1)
-                    if queued_clips:
-                        clip = queued_clips[0]
-                        console.print(f"\n[bold magenta]⚡ Instant Publishing Short #{today_count + 1}/{self.target_daily} to YouTube Studio...[/bold magenta]")
-                        console.print(f"Title: {clip['title']}")
+                # =========================================================================
+                # STAGE 1: BATCH CLIPPING MODE (Clip 200 videos before uploading)
+                # =========================================================================
+                if self.mode == "clipping":
+                    if queued_count < self.batch_target:
+                        console.print(f"[cyan]Clipping in progress ({queued_count}/{self.batch_target} ready). Finding fresh stream from exclusive creators...[/cyan]")
+                        next_video = self.discovery.discover_next_unprocessed_video()
 
-                        dispatch_res = self.multi_dispatcher.publish_clip(
-                            clip=clip,
-                            visibility=self.visibility,
-                            platforms=["youtube", "tiktok", "instagram"]
-                        )
+                        if next_video:
+                            url = next_video["url"]
+                            creator = next_video.get("creator_name", "Creator")
+                            title = next_video.get("title", "Video")
+                            console.print(f"[bold yellow]Ingesting stream from {creator}:[/bold yellow] {title}")
 
-                        yt_res = dispatch_res.get("youtube", {})
-                        if yt_res.get("status") == "success":
-                            pub_url = yt_res.get("url", "https://youtube.com/shorts")
-                            console.print(f"[bold green]Published Successfully![/bold green] URL: {pub_url}")
-                            self.last_upload_time = time.time()
-
-                            # Append URL to youtube_uploaded_urls.txt
-                            self._record_uploaded_url(clip["title"], pub_url)
-
-                            # Delete local video file immediately - we don't need it on machine anymore
-                            rendered_file = clip.get("rendered_path")
-                            if rendered_file and os.path.exists(rendered_file):
-                                try:
-                                    os.remove(rendered_file)
-                                    logger.info(f"Deleted local video {rendered_file} to free disk space.")
-                                    console.print(f"[dim]Deleted local video file {rendered_file}.[/dim]")
-                                except Exception as de:
-                                    logger.warning(f"Could not delete {rendered_file}: {de}")
-
-                            # Automatically update Vyro payout submission manifests
                             try:
-                                self.vyro_hub.export_unsubmitted_submissions()
-                            except Exception:
-                                pass
+                                # Extract 6 high-virality clips per stream
+                                new_clips = self.pipeline.process_video(
+                                    source_url=url,
+                                    max_clips=6,
+                                    reframe_mode=self.reframe_mode
+                                )
+                                console.print(f"[green]Produced {len(new_clips)} new viral shorts! (Queue: {self.db.get_queued_count()}/{self.batch_target})[/green]")
+                            except Exception as pe:
+                                logger.error(f"Failed processing video {url}: {pe}. Marking failed and continuing...")
+                                self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
                         else:
-                            self.db.mark_clip_failed(clip["id"], yt_res.get("message", "Upload error"))
+                            console.print("[dim]No unprocessed videos found right now. Will scan again in 15s.[/dim]")
+                            time.sleep(15)
 
-                        # Brief safety buffer, then immediately loop to upload next ready clip or produce!
-                        time.sleep(self.cooldown_sec)
+                        # Clean up temp audio and downloaded source files to conserve disk space
+                        self._cleanup_temp_files()
+                        time.sleep(2)
                         continue
 
-                elif today_count >= self.target_daily:
-                    console.print("[bold green]Daily target of uploads completed for today! Resting until midnight.[/bold green]")
+                # =========================================================================
+                # STAGE 2: SEQUENTIAL UPLOADING MODE (Upload 1-by-1 once clipping is done)
+                # =========================================================================
+                elif self.mode == "uploading":
+                    if today_count >= self.target_daily:
+                        console.print(f"[bold green]Daily target of {self.target_daily} uploads completed for today! Resting until midnight.[/bold green]")
+                        time.sleep(60)
+                        continue
 
-                # 2. PRODUCTION STAGE: Only when all queued clips are uploaded, discover & produce next video!
-                queued_count = self.db.get_queued_count()
-                if queued_count == 0 and today_count < self.target_daily:
-                    console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
-                    next_video = self.discovery.discover_next_unprocessed_video()
+                    time_since_last = time.time() - self.last_upload_time
+                    can_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.cooldown_sec)
 
-                    if next_video:
-                        url = next_video["url"]
-                        creator = next_video.get("creator_name", "Creator")
-                        title = next_video.get("title", "Video")
-                        console.print(f"[bold yellow]Ingesting fresh stream/video from {creator}:[/bold yellow] {title}")
+                    if can_upload and queued_count > 0:
+                        queued_clips = self.db.get_queued_clips(limit=1)
+                        if queued_clips:
+                            clip = queued_clips[0]
+                            console.print(f"\n[bold magenta]⚡ Uploading Short #{today_count + 1}/{self.target_daily} (Queue remaining: {queued_count})...[/bold magenta]")
+                            console.print(f"Title: {clip['title']}")
 
-                        try:
-                            # Extract 4 high-virality clips from this video
-                            new_clips = self.pipeline.process_video(
-                                source_url=url,
-                                max_clips=4,
-                                reframe_mode=self.reframe_mode
+                            dispatch_res = self.multi_dispatcher.publish_clip(
+                                clip=clip,
+                                visibility=self.visibility,
+                                platforms=["youtube", "tiktok", "instagram"]
                             )
-                            console.print(f"[green]Produced {len(new_clips)} new viral shorts into queue.[/green]")
-                            # Immediately loop back to upload the newly rendered clips!
+
+                            yt_res = dispatch_res.get("youtube", {})
+                            if yt_res.get("status") == "success":
+                                pub_url = yt_res.get("url", "https://youtube.com/shorts")
+                                console.print(f"[bold green]Published Successfully![/bold green] URL: {pub_url}")
+                                self.last_upload_time = time.time()
+
+                                # Append URL to upload logs
+                                self._record_uploaded_url(clip["title"], pub_url)
+
+                                # Delete local video file immediately to free disk space
+                                rendered_file = clip.get("rendered_path")
+                                if rendered_file and os.path.exists(rendered_file):
+                                    try:
+                                        os.remove(rendered_file)
+                                        logger.info(f"Deleted local video {rendered_file} to free disk space.")
+                                        console.print(f"[dim]Deleted local video file {rendered_file}.[/dim]")
+                                    except Exception as de:
+                                        logger.warning(f"Could not delete {rendered_file}: {de}")
+
+                                # Automatically update Vyro payout submission manifests
+                                try:
+                                    self.vyro_hub.export_unsubmitted_submissions()
+                                except Exception:
+                                    pass
+                            else:
+                                self.db.mark_clip_failed(clip["id"], yt_res.get("message", "Upload error"))
+
+                            # Brief 5s cooldown between consecutive uploads
+                            time.sleep(self.cooldown_sec)
                             continue
-                        except Exception as pe:
-                            logger.error(f"Failed processing video {url}: {pe}. Marking failed and continuing...")
-                            self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
-                    else:
-                        console.print("[dim]No new videos found right now. Will check again shortly.[/dim]")
 
-                # 3. MAINTENANCE: Clean up temporary files in downloads/ and temp/
+                # Maintenance
                 self._cleanup_temp_files()
-
-                # Short 10-second sleep before checking queue / cooldown
-                time.sleep(10)
+                time.sleep(5)
 
             except KeyboardInterrupt:
                 console.print("\n[yellow]AutoPilot stopped by user.[/yellow]")
                 break
             except Exception as e:
                 logger.error(f"AutoPilot loop error: {e}")
-                time.sleep(30)
+                time.sleep(15)
 
     def _record_uploaded_url(self, title: str, pub_url: str):
         """Appends the uploaded video URL to youtube_uploaded_urls.txt and youtube_uploaded_url.txt."""

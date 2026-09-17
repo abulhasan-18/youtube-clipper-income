@@ -21,8 +21,8 @@ subtitles:
   outline_width: 6
 
 publishing:
-  target_daily_uploads: 96     # Daily upload target
-  interval_minutes: 0          # Instant upload as soon as video is ready (0 min wait)
+  target_daily_uploads: 200    # Daily upload target: 200 viral Shorts
+  interval_minutes: 0          # Sequential uploads with no interval delay
   cooldown_seconds: 5          # 5s safety buffer between consecutive uploads
   default_visibility: "public" # public, unlisted, or private
   headless: true               # Runs invisible in background without popping windows on Mac
@@ -38,7 +38,8 @@ autopilot:
   creators_registry: "creators.yaml"
   min_video_duration_minutes: 8
   max_video_duration_minutes: 240
-  min_queue_buffer: 15         # Produces new clips whenever queue drops below 15
+  batch_target: 200            # Clip 200 videos first, then upload sequentially
+  min_queue_buffer: 200
 
 models:
   transcriber:

@@ -186,41 +186,36 @@ class YouTubeStudioUploader(BaseUploader):
                 # Wait for upload modal
                 logger.info("Waiting for upload details dialog...")
                 page.wait_for_selector("#textbox", timeout=45000)
-                time.sleep(0.8)
+                time.sleep(1.0)
 
-                # Set Title using execCommand for contenteditable Polymer textbox
-                logger.info("Filling Title & Description...")
-                title_elem = page.locator("#title-textarea #textbox, ytcp-social-suggestions-textbox[aria-label*='title' i] #textbox, #textbox[aria-label*='title' i]").first
-                if title_elem.is_visible():
-                    title_elem.click()
-                    page.evaluate('''([el, text]) => {
-                        el.focus();
-                        document.execCommand('selectAll', false, null);
-                        document.execCommand('insertText', false, text);
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                    }''', [title_elem.element_handle(), title[:100]])
-                    time.sleep(0.5)
+                # Set Title using keyboard typing
+                logger.info(f"Setting Title: {title[:80]}...")
+                title_elem = page.locator("#title-textarea #textbox, #textbox[aria-label*='title' i]").first
+                title_elem.wait_for(state="visible", timeout=30000)
+                title_elem.click()
+                page.keyboard.press("Meta+A")
+                page.keyboard.press("Backspace")
+                page.keyboard.type(title[:100], delay=5)
+                time.sleep(0.5)
+                page.keyboard.press("Escape")
 
                 # Set Description
-                desc_elem = page.locator("#description-textarea #textbox, ytcp-social-suggestions-textbox[aria-label*='description' i] #textbox").first
+                desc_elem = page.locator("#description-textarea #textbox, #textbox[aria-label*='description' i]").first
                 if desc_elem.is_visible():
                     desc_elem.click()
+                    page.keyboard.press("Meta+A")
+                    page.keyboard.press("Backspace")
                     full_desc = f"{description}\n\n{' '.join(['#' + t.strip('#') for t in tags])}"
-                    page.evaluate('''([el, text]) => {
-                        el.focus();
-                        document.execCommand('selectAll', false, null);
-                        document.execCommand('insertText', false, text);
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                    }''', [desc_elem.element_handle(), full_desc[:5000]])
+                    page.keyboard.type(full_desc[:4000], delay=2)
                     time.sleep(0.5)
+                    page.keyboard.press("Escape")
 
-                # Mark "Not made for kids"
+                # Mark "Not made for kids" (Strictly required by YouTube to unlock Visibility/Publish)
                 logger.info("Setting audience to Not Made for Kids...")
-                time.sleep(0.3)
-                page.evaluate("() => { const r = document.querySelector('tp-yt-paper-radio-button[name=\"VIDEO_MADE_FOR_KIDS_NOT_MFK\"]'); if(r) r.click(); }")
-                time.sleep(0.5)
+                not_mfk = page.locator("tp-yt-paper-radio-button[name='VIDEO_MADE_FOR_KIDS_NOT_MFK']").first
+                not_mfk.wait_for(state="visible", timeout=15000)
+                not_mfk.click(force=True)
+                time.sleep(0.8)
 
                 # Helper to handle Google "Verify that it's you" prompt if triggered
                 def handle_verification_if_needed():
@@ -283,8 +278,9 @@ class YouTubeStudioUploader(BaseUploader):
                 # Set Visibility to Public
                 logger.info(f"Setting visibility to {visibility}...")
                 vis_selector = f"tp-yt-paper-radio-button[name='{visibility.upper()}']"
-                page.wait_for_selector(vis_selector, timeout=20000)
-                page.evaluate(f"() => {{ const r = document.querySelector(\"{vis_selector}\"); if(r) r.click(); }}")
+                vis_radio = page.locator(vis_selector).first
+                vis_radio.wait_for(state="visible", timeout=20000)
+                vis_radio.click(force=True)
                 time.sleep(1.0)
 
                 # Fetch URL before submitting if not yet found
