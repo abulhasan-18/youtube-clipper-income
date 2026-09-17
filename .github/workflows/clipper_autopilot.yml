@@ -32,13 +32,15 @@ jobs:
           pip install -r requirements.txt pillow opencv-python-headless
           playwright install chromium --with-deps
 
-      - name: Restore SQLite Database Cache
+      - name: Restore SQLite Database & Clips Cache
         uses: actions/cache@v4
         with:
-          path: storage/clipper.db
-          key: clipper-db-${{ github.run_id }}
+          path: |
+            storage/clipper.db
+            output/
+          key: clipper-state-${{ github.run_id }}
           restore-keys: |
-            clipper-db-
+            clipper-state-
 
       - name: Run AutoPilot (Every 15 mins: Discover, Clip, Reframe, Publish)
         env:
@@ -53,13 +55,15 @@ jobs:
           from core.discovery import ContentDiscovery
           from pipeline import ClipperPipeline
           from storage.database import Database
+          import os
 
           db = Database()
-          queued_count = db.get_queued_count()
-          print(f'Current queue buffer: {queued_count} clips.')
+          queued = db.get_queued_clips(limit=50)
+          valid_queued = [c for c in queued if os.path.exists(c['rendered_path'])]
+          print(f'Ready clips on disk: {len(valid_queued)}')
 
-          # Maintain healthy buffer of at least 5 ready clips
-          if queued_count < 5:
+          # Maintain buffer of ready clips
+          if len(valid_queued) < 2:
               disc = ContentDiscovery(db=db)
               v = disc.discover_next_unprocessed_video()
               if v:
@@ -77,7 +81,7 @@ jobs:
           import os
 
           db = Database()
-          queued = db.get_queued_clips(limit=1)
+          queued = [c for c in db.get_queued_clips(limit=20) if os.path.exists(c['rendered_path'])]
           today_count = db.get_todays_upload_count()
           print(f'Today uploads: {today_count}/96')
 
@@ -89,7 +93,7 @@ jobs:
               res = uploader.upload_short(clip[\"rendered_path\"], clip[\"title\"], clip[\"description\"], tags, 'public')
               if res.get('status') == 'success':
                   db.mark_clip_published(clip['id'], res.get('url', ''))
-                  print(f'Published successfully to YouTube! Total today: {today_count + 1}/96')
+                  print(f'Published successfully to YouTube! Total today: {today_count + 1}/96: {res.get(\"url\")}')
           else:
               print('No clips to publish, daily target reached, or YOUTUBE_SESSION_B64 secret not set.')
           "
