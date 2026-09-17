@@ -139,13 +139,13 @@ class YouTubeStudioUploader(BaseUploader):
             try:
                 # Use domcontentloaded to prevent networkidle timeouts on YouTube websockets
                 page.goto("https://studio.youtube.com/?approve_browser_access=true", wait_until="domcontentloaded", timeout=60000)
-                page.wait_for_timeout(4000)
+                page.wait_for_timeout(1200)
 
                 # Check if "Skip to YouTube Studio" link exists and click it
                 skip_link = page.locator("a:has-text('Skip to YouTube Studio'), a[href*='approve_browser_access']").first
                 if skip_link.is_visible():
                     skip_link.click(force=True)
-                    page.wait_for_timeout(4000)
+                    page.wait_for_timeout(1200)
 
                 # Check if logged in
                 if "accounts.google.com" in page.url:
@@ -157,7 +157,7 @@ class YouTubeStudioUploader(BaseUploader):
                 create_btn = page.locator("#create-icon, #upload-button, [aria-label='Create'], ytcp-button#create-icon").first
                 create_btn.wait_for(state="visible", timeout=25000)
                 create_btn.click(force=True)
-                time.sleep(2)
+                time.sleep(0.5)
 
                 # Click "Upload videos"
                 logger.info("Clicking Upload videos option...")
@@ -176,7 +176,7 @@ class YouTubeStudioUploader(BaseUploader):
                 # Wait for upload modal
                 logger.info("Waiting for upload details dialog...")
                 page.wait_for_selector("#textbox", timeout=45000)
-                time.sleep(4)
+                time.sleep(0.8)
 
                 # Set Title
                 logger.info("Filling Title & Description...")
@@ -191,9 +191,9 @@ class YouTubeStudioUploader(BaseUploader):
 
                 # Mark "Not made for kids"
                 logger.info("Setting audience to Not Made for Kids...")
-                time.sleep(2)
+                time.sleep(0.3)
                 page.evaluate("() => { const r = document.querySelector('tp-yt-paper-radio-button[name=\"VIDEO_MADE_FOR_KIDS_NOT_MFK\"]'); if(r) r.click(); }")
-                time.sleep(2)
+                time.sleep(0.3)
 
                 # Helper to handle Google "Verify that it's you" prompt if triggered
                 def handle_verification_if_needed():
@@ -242,7 +242,7 @@ class YouTubeStudioUploader(BaseUploader):
                 logger.info("Advancing through wizard steps...")
                 for step in range(3):
                     handle_verification_if_needed()
-                    time.sleep(1)
+                    time.sleep(0.3)
                     # Look for next button that is not hidden
                     next_btns = page.locator("#next-button:not([hidden])").all()
                     clicked = False
@@ -256,7 +256,7 @@ class YouTubeStudioUploader(BaseUploader):
                                 pass
                     if not clicked:
                         page.evaluate("() => { const b = document.querySelector('#next-button:not([hidden])'); if(b) b.click(); }")
-                    time.sleep(3)
+                    time.sleep(0.8)
 
                 handle_verification_if_needed()
 
@@ -265,7 +265,7 @@ class YouTubeStudioUploader(BaseUploader):
                 vis_selector = f"tp-yt-paper-radio-button[name='{visibility.upper()}']"
                 page.wait_for_selector(vis_selector, timeout=20000)
                 page.evaluate(f"() => {{ const r = document.querySelector(\"{vis_selector}\"); if(r) r.click(); }}")
-                time.sleep(2)
+                time.sleep(0.5)
 
                 # Fetch URL before submitting if not yet found
                 if not short_url:
@@ -293,7 +293,7 @@ class YouTubeStudioUploader(BaseUploader):
                 if not done_clicked:
                     page.evaluate("() => { const b = document.querySelector('#done-button:not([hidden])') || document.querySelector('#done-button'); if(b) b.click(); }")
 
-                time.sleep(6)
+                time.sleep(1.5)
 
                 # Look for video URL in post-publish popup
                 import re

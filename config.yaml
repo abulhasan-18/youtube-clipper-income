@@ -21,8 +21,9 @@ subtitles:
   outline_width: 6
 
 publishing:
-  target_daily_uploads: 96     # 4 shorts/hour * 24 hours = 96 shorts/day
-  interval_minutes: 15         # 1 short every 15 minutes 24/7
+  target_daily_uploads: 96     # Daily upload target
+  interval_minutes: 0          # Instant upload as soon as video is ready (0 min wait)
+  cooldown_seconds: 10         # 10s safety buffer between consecutive uploads
   default_visibility: "public" # public, unlisted, or private
   headless: false              # Visible window avoids Google bot detection on Mac
   upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)

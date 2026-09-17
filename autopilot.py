@@ -29,9 +29,9 @@ class AutoPilotService:
         self.pipeline = ClipperPipeline(config_path=config_path)
         self.vyro_hub = VyroMonetizationHub(db=self.db)
 
-        # Publishing settings: 96 clips/day (1 every 15 minutes)
+        # Publishing settings: Instant upload as soon as video is ready
         self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 96)
-        self.interval_sec = self.config.get("publishing", {}).get("interval_minutes", 15) * 60
+        self.cooldown_sec = self.config.get("publishing", {}).get("cooldown_seconds", 10)
         self.visibility = self.config.get("publishing", {}).get("default_visibility", "public")
         self.reframe_mode = self.config.get("video", {}).get("reframe_mode", "face_track")
 
@@ -48,17 +48,16 @@ class AutoPilotService:
     def run_autonomous_loop(self):
         """
         100% Autonomous 24/7 Loop:
-        - Discovers videos from the 50 monitored creators
-        - Clips and renders 9:16 vertical shorts with dynamic subtitles
-        - Schedules and uploads 96 shorts daily (1 every 15 mins) to YouTube Shorts
+        - Instant Upload: As soon as a clip is ready, immediately upload to YouTube Studio
+        - Instant Repeat: Once uploaded, logged, and cleaned up, immediately process next clip/video
         """
-        console.rule("[bold cyan]🤖 Clipper AutoPilot: 100% Autonomous 24/7 Service")
+        console.rule("[bold cyan]🤖 Clipper AutoPilot: Instant Upload 24/7 Service")
         console.print(Panel(
-            f"[bold green]Monitored Creators:[/bold green] 50 Top Streamers (IShowSpeed, Kai Cenat, Ibai, xQc, Adin Ross, etc.)\n"
-            f"[bold green]Target Output:[/bold green] 96 Viral Shorts / Day (4 shorts/hr 24/7)\n"
-            f"[bold green]Upload Cadence:[/bold green] 1 Short every {self.interval_sec/60:.1f} minutes\n"
-            f"[bold green]Auto-Reframe:[/bold green] 9:16 Vertical with Face Tracking & Hormozi Captions",
-            title="AutoPilot Initialized (96 Shorts / Day)",
+            f"[bold green]Monitored Creators:[/bold green] 50 Top Streamers (IShowSpeed, Kai Cenat, Sidemen, AMP, etc.)\n"
+            f"[bold green]Target Output:[/bold green] {self.target_daily} Viral Shorts / Day\n"
+            f"[bold green]Upload Cadence:[/bold green] Instant (as soon as video is ready)\n"
+            f"[bold green]Auto-Reframe:[/bold green] 9:16 Vertical with Centered 16:9 Video & Hormozi Captions",
+            title="AutoPilot Initialized (Instant Upload Mode)",
             border_style="cyan"
         ))
 
@@ -70,15 +69,15 @@ class AutoPilotService:
 
                 console.print(f"\n[bold][{now_str}][/bold] Today: [yellow]{today_count}/{self.target_daily}[/yellow] uploads | Ready in Queue: [cyan]{queued_count}[/cyan] clips")
 
-                # 1. PUBLISHING STAGE: If it's time to upload and we have queued clips, upload immediately!
+                # 1. PUBLISHING STAGE: If any clip is ready in queue, upload immediately to YouTube Studio!
                 time_since_last = time.time() - self.last_upload_time
-                is_time_to_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.interval_sec)
+                can_upload = (self.last_upload_time == 0.0) or (time_since_last >= self.cooldown_sec)
 
-                if is_time_to_upload and today_count < self.target_daily:
+                if can_upload and queued_count > 0 and today_count < self.target_daily:
                     queued_clips = self.db.get_queued_clips(limit=1)
                     if queued_clips:
                         clip = queued_clips[0]
-                        console.print(f"\n[bold magenta]Publishing Short #{today_count + 1}/96 across platforms (YouTube Shorts, TikTok, Instagram & Vyro)...[/bold magenta]")
+                        console.print(f"\n[bold magenta]⚡ Instant Publishing Short #{today_count + 1}/{self.target_daily} to YouTube Studio...[/bold magenta]")
                         console.print(f"Title: {clip['title']}")
 
                         dispatch_res = self.multi_dispatcher.publish_clip(
@@ -114,12 +113,16 @@ class AutoPilotService:
                         else:
                             self.db.mark_clip_failed(clip["id"], yt_res.get("message", "Upload error"))
 
-                elif today_count >= self.target_daily:
-                    console.print("[bold green]Daily target of 96 uploads completed for today! Resting until midnight.[/bold green]")
+                        # Short 3s cooldown, then immediately loop to upload next ready clip or produce!
+                        time.sleep(3)
+                        continue
 
-                # 2. PRODUCTION STAGE: If ready queue buffer is low (< 5 clips), discover & produce new shorts
+                elif today_count >= self.target_daily:
+                    console.print("[bold green]Daily target of uploads completed for today! Resting until midnight.[/bold green]")
+
+                # 2. PRODUCTION STAGE: If ready queue buffer is low (< 4 clips), discover & produce new shorts immediately!
                 queued_count = self.db.get_queued_count()
-                if queued_count < 5 and today_count < self.target_daily:
+                if queued_count < 4 and today_count < self.target_daily:
                     console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
                     next_video = self.discovery.discover_next_unprocessed_video()
 
@@ -137,17 +140,19 @@ class AutoPilotService:
                                 reframe_mode=self.reframe_mode
                             )
                             console.print(f"[green]Produced {len(new_clips)} new viral shorts into queue.[/green]")
+                            # Immediately loop back to upload the newly rendered clips!
+                            continue
                         except Exception as pe:
                             logger.error(f"Failed processing video {url}: {pe}. Marking failed and continuing...")
                             self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
                     else:
-                        console.print("[dim]No new videos found right now. Will check again in next cycle.[/dim]")
+                        console.print("[dim]No new videos found right now. Will check again shortly.[/dim]")
 
                 # 3. MAINTENANCE: Clean up temporary files in downloads/ and temp/
                 self._cleanup_temp_files()
 
-                # Sleep 60 seconds before next heartbeat check
-                time.sleep(60)
+                # Short 10-second sleep before checking queue / cooldown
+                time.sleep(10)
 
             except KeyboardInterrupt:
                 console.print("\n[yellow]AutoPilot stopped by user.[/yellow]")
