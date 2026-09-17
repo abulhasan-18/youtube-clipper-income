@@ -26,3 +26,5 @@ env/
 .DS_Store
 Thumbs.db
 youtube_session_b64.txt
+*.log
+*.pid

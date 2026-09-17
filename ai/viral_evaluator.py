@@ -11,8 +11,9 @@ Your goal is to critically judge candidate video clips and rate their viral psyc
 Evaluate each candidate on:
 1. Hook Retention Score (1-10): Will a user scrolling past stop in 0.5 to 2 seconds?
 2. Curiosity Gap (1-10): Does it create an open loop that compels watching until the end?
-3. Shareability / Re-watch Value (1-10): Would viewers share this or re-watch?
-4. Overall Virality Score (1-10): The composite metric determining algorithm push.
+3. Emotional / Humor Intensity (1-10): Is it laugh-out-loud funny, shocking, or intense?
+4. Shareability / Re-watch Value (1-10): Would viewers share this or re-watch?
+5. Overall Virality Score (1-10): The composite metric determining algorithm push.
 
 Return ONLY a valid JSON object matching this schema:
 {
@@ -25,7 +26,7 @@ Return ONLY a valid JSON object matching this schema:
       "virality_score": 9.4,
       "hook_critique": "Why the hook works or how to maximize impact",
       "pacing_verdict": "fast / medium / slow",
-      "status": "approved" -- "approved" if virality_score >= 7.0, else "rejected"
+      "status": "approved"
     }
   ]
 }

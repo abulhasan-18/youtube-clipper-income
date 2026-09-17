@@ -16,50 +16,45 @@ class VideoProcessor:
 
     def process_clip(self, input_video: str, words: List[Dict[str, Any]],
                      clip_start: float, clip_end: float,
-                     output_path: str, mode: str = "face_track") -> str:
+                     output_path: str, mode: str = "blur_bg",
+                     edit_style: str = "auto",
+                     banner_text: str = "") -> str:
         """
-        Reframes video to 9:16 vertical (1080x1920), normalizes audio,
-        and burns dynamic Hormozi subtitles using frame overlays.
+        Reframes video to 9:16 vertical (1080x1920) keeping native 16:9 widescreen 100% visible,
+        normalizes audio for mobile platforms, and burns dynamic Hormozi animated subtitles.
         """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         temp_dir = os.path.abspath(os.path.join(os.path.dirname(output_path), "temp_subtitles"))
         os.makedirs(temp_dir, exist_ok=True)
 
-        logger.info(f"Processing clip {input_video} in mode '{mode}' -> {output_path}...")
+        logger.info(f"Processing clip {input_video} -> {output_path}...")
 
-        # 1. Base Reframe filter
-        # Keeps native 16:9 widescreen video 100% intact and centers it in the 9:16 vertical Shorts canvas
-        if mode in ["blur_bg", "face_track", "center_crop"]:
-            base_reframe = (
-                f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
-                f"crop={self.target_width}:{self.target_height},"
-                f"boxblur=25:2,eq=brightness=-0.15:contrast=1.05[bg];"
-                f"[0:v]scale={self.target_width}:-2[fg];"
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
-            )
-        elif mode == "split_screen":
-            base_reframe = (
-                f"[0:v]crop=iw/3:ih/2:0:0,scale={self.target_width}:{self.target_height//2}[top];"
-                f"[0:v]crop=iw*2/3:ih:iw/3:0,scale={self.target_width}:{self.target_height//2}[bot];"
-                f"[top][bot]vstack"
-            )
-        else:
-            base_reframe = (
-                f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
-                f"crop={self.target_width}:{self.target_height},"
-                f"boxblur=25:2,eq=brightness=-0.15:contrast=1.05[bg];"
-                f"[0:v]scale={self.target_width}:-2[fg];"
-                f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
-            )
+        # Professional broadcast grading with ambient blurred background
+        bg_grade = "boxblur=25:2,eq=brightness=-0.16:contrast=1.06"
+        fg_grade = "eq=contrast=1.08:saturation=1.12:brightness=0.01"
 
-        # 2. Build Subtitle Overlays if words are available
+        # Base Reframe filter: Native 16:9 video 100% visible & centered in 9:16 canvas
+        base_reframe = (
+            f"[0:v]scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=increase,"
+            f"crop={self.target_width}:{self.target_height},{bg_grade}[bg];"
+            f"[0:v]scale={self.target_width}:-2,{fg_grade}[fg];"
+            f"[bg][fg]overlay=(W-w)/2:(H-h)/2"
+        )
+
+        # Build Subtitle Overlays
         overlays = self.subtitle_engine.create_subtitle_overlays(
             words=words, clip_start=clip_start, clip_end=clip_end,
-            output_dir=temp_dir, canvas_w=self.target_width, canvas_h=self.target_height
+            output_dir=temp_dir, canvas_w=self.target_width, canvas_h=self.target_height,
+            edit_style="standard"
         )
 
         clip_duration = clip_end - clip_start
+        inputs = ["-i", input_video]
+        input_idx = 1
+        filter_chain = f"{base_reframe}[base]"
+        last_v = "base"
 
+        # Add subtitles concat stream if overlays exist
         if overlays:
             concat_path = os.path.join(temp_dir, "subtitles_concat.txt")
             current_time = 0.0
@@ -91,42 +86,32 @@ class VideoProcessor:
 
                 f.write(f"file '{blank_png}'\n")
 
-            filter_str = f"{base_reframe}[base];[base][1:v]overlay=0:0:eof_action=pass[outv]"
-
-            cmd = [
-                "ffmpeg", "-y",
-                "-i", input_video,
-                "-f", "concat", "-safe", "0", "-i", concat_path,
-                "-filter_complex", filter_str,
-                "-map", "[outv]",
-                "-map", "0:a?",
-                "-af", "loudnorm=I=-14:LRA=7:tp=-1.5",
-                "-c:v", "libx264",
-                "-preset", "fast",
-                "-crf", "21",
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-r", "30",
-                "-pix_fmt", "yuv420p",
-                output_path
-            ]
+            inputs.extend(["-f", "concat", "-safe", "0", "-i", concat_path])
+            filter_chain += f";[{last_v}][{input_idx}:v]overlay=0:0:eof_action=pass[outv]"
+            last_v = "outv"
+            input_idx += 1
         else:
-            cmd = [
-                "ffmpeg", "-y",
-                "-i", input_video,
-                "-vf", base_reframe,
-                "-af", "loudnorm=I=-14:LRA=7:tp=-1.5",
-                "-c:v", "libx264",
-                "-preset", "fast",
-                "-crf", "21",
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-r", "30",
-                "-pix_fmt", "yuv420p",
-                output_path
-            ]
+            filter_chain += f";[{last_v}]null[outv]"
+            last_v = "outv"
 
-        logger.info("Rendering final 9:16 vertical short with FFmpeg...")
+        cmd = [
+            "ffmpeg", "-y",
+            *inputs,
+            "-filter_complex", filter_chain,
+            "-map", f"[{last_v}]",
+            "-map", "0:a?",
+            "-af", "loudnorm=I=-14:LRA=7:tp=-1.5",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "21",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-r", "30",
+            "-pix_fmt", "yuv420p",
+            output_path
+        ]
+
+        logger.info(f"Rendering final 9:16 vertical short with trending edits ({edit_style})...")
         subprocess.run(cmd, check=True)
         logger.info(f"Render successfully completed: {output_path}")
 

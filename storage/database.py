@@ -67,6 +67,20 @@ class Database:
             except sqlite3.OperationalError:
                 pass
 
+            # Multi-platform & Vyro monetization columns
+            for col, col_type in [
+                ("edit_style", "TEXT DEFAULT 'auto'"),
+                ("tiktok_url", "TEXT"),
+                ("instagram_url", "TEXT"),
+                ("vyro_campaign_id", "TEXT"),
+                ("vyro_submitted", "INTEGER DEFAULT 0"),
+                ("estimated_earnings", "REAL DEFAULT 0.0")
+            ]:
+                try:
+                    cursor.execute(f"ALTER TABLE clips ADD COLUMN {col} {col_type}")
+                except sqlite3.OperationalError:
+                    pass
+
             conn.commit()
 
     def is_video_processed(self, source_url: str) -> bool:
@@ -100,15 +114,15 @@ class Database:
             conn.commit()
 
     def add_clip(self, video_id: int, start_time: float, end_time: float, virality_score: float,
-                 hook_text: str, title: str, description: str, tags: str) -> int:
+                 hook_text: str, title: str, description: str, tags: str, edit_style: str = "auto") -> int:
         duration = end_time - start_time
         with self._get_conn() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO clips (video_id, start_time, end_time, duration, virality_score,
-                                   hook_text, title, description, tags, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-            """, (video_id, start_time, end_time, duration, virality_score, hook_text, title, description, tags))
+                                   hook_text, title, description, tags, edit_style, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+            """, (video_id, start_time, end_time, duration, virality_score, hook_text, title, description, tags, edit_style))
             conn.commit()
             return cursor.lastrowid
 
@@ -126,6 +140,50 @@ class Database:
                 WHERE id = ?
             """, (youtube_url, clip_id))
             conn.commit()
+
+    def update_clip_multiplatform(self, clip_id: int, platform: str, url: str):
+        """Updates live published URL for tiktok or instagram."""
+        col = f"{platform.lower()}_url"
+        if col in ["tiktok_url", "instagram_url", "youtube_url"]:
+            with self._get_conn() as conn:
+                conn.execute(f"UPDATE clips SET {col} = ? WHERE id = ?", (url, clip_id))
+                conn.commit()
+
+    def mark_vyro_submitted(self, clip_id: int, campaign_id: str = "", estimated_earnings: float = 0.0):
+        """Records that this clip has been submitted to a Vyro payout campaign."""
+        with self._get_conn() as conn:
+            conn.execute("""
+                UPDATE clips SET vyro_submitted = 1, vyro_campaign_id = ?, estimated_earnings = ?
+                WHERE id = ?
+            """, (campaign_id, estimated_earnings, clip_id))
+            conn.commit()
+
+    def get_unsubmitted_vyro_clips(self) -> List[Dict[str, Any]]:
+        """Returns all published clips that have not yet been submitted to Vyro."""
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT c.*, v.title as video_title, v.creator_name
+                FROM clips c
+                JOIN videos v ON c.video_id = v.id
+                WHERE (c.youtube_url IS NOT NULL OR c.tiktok_url IS NOT NULL OR c.instagram_url IS NOT NULL)
+                  AND c.vyro_submitted = 0
+                ORDER BY c.published_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_all_monetized_clips(self) -> List[Dict[str, Any]]:
+        """Returns all published clips across all platforms with monetization metrics."""
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT c.*, v.title as video_title, v.creator_name
+                FROM clips c
+                JOIN videos v ON c.video_id = v.id
+                WHERE c.status = 'published'
+                ORDER BY c.published_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
 
     def mark_clip_failed(self, clip_id: int, error_message: str):
         with self._get_conn() as conn:

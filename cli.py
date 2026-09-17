@@ -192,12 +192,21 @@ def main():
     sched_parser = subparsers.add_parser("schedule", help="Start the publishing scheduler only")
     sched_parser.set_defaults(func=cmd_schedule)
 
+    # vyro command
+    vyro_parser = subparsers.add_parser("vyro", help="Display Multi-Platform Vyro Monetization Dashboard, CPM payouts & submissions")
+    vyro_parser.set_defaults(func=cmd_vyro)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
         sys.exit(1)
 
     args.func(args)
+
+def cmd_vyro(args):
+    from core.vyro_monetization import VyroMonetizationHub
+    hub = VyroMonetizationHub()
+    hub.print_monetization_dashboard()
 
 if __name__ == "__main__":
     main()

@@ -95,8 +95,14 @@ class ClipperPipeline:
         final_rendered_clips = []
 
         for idx, clip in enumerate(approved_clips, start=1):
-            start_t = clip["start_time"]
-            end_t = clip["end_time"]
+            start_t = float(clip["start_time"])
+            end_t = float(clip["end_time"])
+            if duration > 0:
+                if start_t >= duration - 5:
+                    logger.warning(f"Skipping clip {idx}: start_t ({start_t:.1f}s) is beyond video duration ({duration:.1f}s)")
+                    continue
+                end_t = round(min(end_t, duration), 1)
+
             hook_text = clip.get("hook_text", "")
             topic = clip.get("topic", video_title)
 
@@ -128,15 +134,35 @@ class ClipperPipeline:
             raw_clip_name = f"raw_{video_id}_{clip_id}_{int(start_t)}.mp4"
             raw_clip_path = self.downloader.download_clip_segment(source_url, start_t, end_t, raw_clip_name)
 
-            # Render final 9:16 vertical video with dynamic subtitles
+            # Direct Whisper transcription of the exact video slice for 100% verbatim subtitle alignment
+            clip_words = []
+            clip_dur = max(1.0, end_t - start_t)
+            console.print(f"  [cyan]Aligning subtitles verbatim for Clip {idx} via Whisper LPU...[/cyan]")
+            try:
+                slice_data = self.transcriber.transcribe_audio(raw_clip_path)
+                clip_words = slice_data.get("words", [])
+                logger.info(f"Direct slice transcription matched {len(clip_words)} words.")
+            except Exception as e:
+                logger.warning(f"Slice transcription failed: {e}. Falling back to global timestamps.")
+                clip_words = all_words
+
+            # If direct transcription succeeded, timestamps start at 0.0s of raw_clip_path
+            if clip_words and clip_words != all_words:
+                slice_start = 0.0
+                slice_end = clip_dur
+            else:
+                slice_start = start_t
+                slice_end = end_t
+
+            # Render final 9:16 vertical video with dynamic subtitles (native 16:9 centered)
             rendered_clip_name = f"short_{video_id}_{clip_id}.mp4"
             rendered_path = os.path.join(self.output_dir, rendered_clip_name)
 
             self.video_processor.process_clip(
                 input_video=raw_clip_path,
-                words=all_words,
-                clip_start=start_t,
-                clip_end=end_t,
+                words=clip_words,
+                clip_start=slice_start,
+                clip_end=slice_end,
                 output_path=rendered_path,
                 mode=mode
             )

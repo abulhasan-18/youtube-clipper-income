@@ -10,20 +10,20 @@ Your goal is to package video clips with titles and descriptions that maximize C
 
 Rules for Titles:
 - Punchy, emotional, or polarizing (under 60 characters).
-- Include high-impact words or curiosity hooks (e.g. "Wait Until He Realized...", "Never Do This...", "The Truth About...").
-- Keep it natural, not cheap scam-bait. Include 1 relevant emoji.
-- Always include #Shorts in the title or tags.
+- Include high-impact curiosity hooks (e.g. "HE SAID WHAT?! 😱", "Wait For The End 💀", "Never Do This In Public...").
+- Include 1-2 relevant emojis (💀, 🔥, 😱, 😂, 😳).
+- Always include #Shorts in the title.
 
 Rules for Descriptions:
 - 2-3 sentences providing context and teasing the climax.
-- 5-8 hyper-relevant viral tags (e.g., #Shorts #viral #podcast #trending).
+- 5-8 hyper-relevant viral tags (e.g., #Shorts #viral #trending #fyp #podcast #funny).
 - 1 engaging question to drive comments.
 
 Return ONLY a valid JSON object matching this schema:
 {
   "title": "HE DID WHAT?! 😱 #Shorts",
-  "description": "Watch what happens when... What would you do in this situation? \n\n#Shorts #viral #trending #fyp",
-  "tags": ["Shorts", "viral", "trending", "clip", "podcast"],
+  "description": "Watch what happens next... What would you do in this situation? \n\n#Shorts #viral #trending #fyp",
+  "tags": ["Shorts", "viral", "trending", "funny", "clip"],
   "pinned_comment": "Did he go too far? Let me know below 👇"
 }
 """
