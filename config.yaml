@@ -25,7 +25,7 @@ publishing:
   interval_minutes: 0          # Instant upload as soon as video is ready (0 min wait)
   cooldown_seconds: 10         # 10s safety buffer between consecutive uploads
   default_visibility: "public" # public, unlisted, or private
-  headless: false              # Visible window avoids Google bot detection on Mac
+  headless: true               # Runs invisible in background without popping windows on Mac
   upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)
   channel_tags:
     - "Shorts"

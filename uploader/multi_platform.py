@@ -12,7 +12,7 @@ logger = logging.getLogger("Clipper.MultiPlatform")
 class MultiPlatformDispatcher:
     def __init__(self, youtube_uploader: Optional[BaseUploader] = None, db: Optional[Database] = None):
         self.db = db or Database()
-        self.youtube_uploader = youtube_uploader or YouTubeStudioUploader(headless=False)
+        self.youtube_uploader = youtube_uploader or YouTubeStudioUploader(headless=True)
         self.vyro_hub = VyroMonetizationHub(db=self.db)
 
     def publish_clip(self, clip: Dict[str, Any], visibility: str = "public",
