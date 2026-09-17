@@ -182,22 +182,39 @@ class YouTubeStudioUploader(BaseUploader):
                 page.wait_for_selector("#textbox", timeout=45000)
                 time.sleep(0.8)
 
-                # Set Title
+                # Set Title using execCommand for contenteditable Polymer textbox
                 logger.info("Filling Title & Description...")
-                title_boxes = page.locator("#textbox").all()
-                if title_boxes:
-                    title_boxes[0].fill(title[:100])
+                title_elem = page.locator("#title-textarea #textbox, ytcp-social-suggestions-textbox[aria-label*='title' i] #textbox, #textbox[aria-label*='title' i]").first
+                if title_elem.is_visible():
+                    title_elem.click()
+                    page.evaluate('''([el, text]) => {
+                        el.focus();
+                        document.execCommand('selectAll', false, null);
+                        document.execCommand('insertText', false, text);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }''', [title_elem.element_handle(), title[:100]])
+                    time.sleep(0.5)
 
                 # Set Description
-                if len(title_boxes) > 1:
+                desc_elem = page.locator("#description-textarea #textbox, ytcp-social-suggestions-textbox[aria-label*='description' i] #textbox").first
+                if desc_elem.is_visible():
+                    desc_elem.click()
                     full_desc = f"{description}\n\n{' '.join(['#' + t.strip('#') for t in tags])}"
-                    title_boxes[1].fill(full_desc[:5000])
+                    page.evaluate('''([el, text]) => {
+                        el.focus();
+                        document.execCommand('selectAll', false, null);
+                        document.execCommand('insertText', false, text);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }''', [desc_elem.element_handle(), full_desc[:5000]])
+                    time.sleep(0.5)
 
                 # Mark "Not made for kids"
                 logger.info("Setting audience to Not Made for Kids...")
                 time.sleep(0.3)
                 page.evaluate("() => { const r = document.querySelector('tp-yt-paper-radio-button[name=\"VIDEO_MADE_FOR_KIDS_NOT_MFK\"]'); if(r) r.click(); }")
-                time.sleep(0.3)
+                time.sleep(0.5)
 
                 # Helper to handle Google "Verify that it's you" prompt if triggered
                 def handle_verification_if_needed():
@@ -208,7 +225,6 @@ class YouTubeStudioUploader(BaseUploader):
                             logger.warning("⚠️  ACTION REQUIRED: YouTube 'Verify that it's you' prompt detected.")
                             logger.warning("Please complete the verification prompt in the Chrome browser / on your phone.")
                             logger.warning("=" * 65)
-                            # Try clicking Next inside verification dialog if available
                             try:
                                 v_dialog = page.locator("tp-yt-paper-dialog, [role='dialog'], ytcp-dialog").filter(has_text=vt).first
                                 v_btn = v_dialog.locator("#next-button, ytcp-button, button").filter(has_text="Next").first
@@ -217,7 +233,6 @@ class YouTubeStudioUploader(BaseUploader):
                             except Exception:
                                 pass
 
-                            # Wait up to 5 minutes (100 x 3s) for the user to complete verification
                             for i in range(100):
                                 time.sleep(3)
                                 still_showing = any(page.locator(f"text='{t}'").is_visible() for t in verify_texts)
@@ -242,34 +257,29 @@ class YouTubeStudioUploader(BaseUploader):
                 except Exception:
                     pass
 
-                # Advance wizard steps to Visibility
-                logger.info("Advancing through wizard steps...")
-                for step in range(3):
-                    handle_verification_if_needed()
-                    time.sleep(0.3)
-                    # Look for next button that is not hidden
-                    next_btns = page.locator("#next-button:not([hidden])").all()
-                    clicked = False
-                    for nb in next_btns:
+                # Direct Jump to Visibility Step Badge
+                logger.info("Navigating to Visibility step...")
+                vis_badge = page.locator("#step-badge-3, [test-id='VISIBILITY']").first
+                if vis_badge.is_visible():
+                    vis_badge.click(force=True)
+                    time.sleep(1.2)
+                else:
+                    for _ in range(3):
+                        handle_verification_if_needed()
+                        time.sleep(0.3)
+                        nb = page.locator("#next-button:not([hidden])").first
                         if nb.is_visible():
-                            try:
-                                nb.click(force=True)
-                                clicked = True
-                                break
-                            except Exception:
-                                pass
-                    if not clicked:
-                        page.evaluate("() => { const b = document.querySelector('#next-button:not([hidden])'); if(b) b.click(); }")
-                    time.sleep(0.8)
+                            nb.click(force=True)
+                            time.sleep(0.8)
 
                 handle_verification_if_needed()
 
-                # Set Visibility
+                # Set Visibility to Public
                 logger.info(f"Setting visibility to {visibility}...")
                 vis_selector = f"tp-yt-paper-radio-button[name='{visibility.upper()}']"
                 page.wait_for_selector(vis_selector, timeout=20000)
                 page.evaluate(f"() => {{ const r = document.querySelector(\"{vis_selector}\"); if(r) r.click(); }}")
-                time.sleep(0.5)
+                time.sleep(1.0)
 
                 # Fetch URL before submitting if not yet found
                 if not short_url:
@@ -282,55 +292,37 @@ class YouTubeStudioUploader(BaseUploader):
                     except Exception:
                         pass
 
-                # Click Publish / Done
+                # Click Publish
                 logger.info("Submitting publication...")
-                done_btns = page.locator("#done-button:not([hidden]), #done-button").all()
-                done_clicked = False
-                for db in done_btns:
-                    if db.is_visible():
-                        try:
-                            db.click(force=True)
-                            done_clicked = True
-                            break
-                        except Exception:
-                            pass
-                if not done_clicked:
-                    page.evaluate("() => { const b = document.querySelector('#done-button:not([hidden])') || document.querySelector('#done-button'); if(b) b.click(); }")
+                done_btn = page.locator("#done-button:not([hidden]), #done-button, ytcp-button#done-button").first
+                done_btn.wait_for(state="visible", timeout=20000)
+                done_btn.click(force=True)
 
-                time.sleep(1.5)
-
-                # Look for video URL in post-publish popup
-                import re
-                for _ in range(15):
-                    try:
-                        for el in page.locator("a[href*='youtu.be'], a[href*='youtube.com/shorts'], a.ytcp-video-info").all():
-                            h = el.get_attribute("href")
-                            if h and ("youtu.be" in h or "youtube.com" in h):
-                                short_url = h
-                                break
-                    except Exception:
-                        pass
-
+                # Wait for upload completion and publication confirmation
+                logger.info("Waiting for video upload and publication to finalize...")
+                for _ in range(30):
+                    time.sleep(2)
                     if not short_url:
                         try:
-                            for d_sel in ["ytcp-uploads-dialog", "tp-yt-paper-dialog", "ytcp-dialog", "body"]:
-                                d_elem = page.locator(d_sel).first
-                                if d_elem.is_visible():
-                                    text = d_elem.inner_text()
-                                    m = re.search(r"https?://(?:youtu\.be/|youtube\.com/shorts/)[a-zA-Z0-9_-]+", text)
-                                    if m:
-                                        short_url = m.group(0)
-                                        break
+                            for el in page.locator("a[href*='youtu.be'], a[href*='youtube.com/shorts'], a.ytcp-video-info").all():
+                                h = el.get_attribute("href")
+                                if h and ("youtu.be" in h or "youtube.com" in h):
+                                    short_url = h
+                                    break
                         except Exception:
                             pass
 
-                    if short_url:
+                    # Check if share dialog appeared or upload dialog closed
+                    if page.locator("ytcp-video-share-dialog, #share-url, tp-yt-paper-dialog:has-text('published')").first.is_visible():
+                        logger.info("Publication confirmed by Studio share dialog!")
                         break
-                    time.sleep(1)
+                    if not page.locator("ytcp-uploads-dialog").is_visible():
+                        logger.info("Upload dialog closed, publication saved!")
+                        break
 
-                # Close post-publish dialog if open
+                # Close post-publish share dialog if open
                 try:
-                    close_btn = page.locator("#close-button, ytcp-button#close-button").first
+                    close_btn = page.locator("ytcp-video-share-dialog #close-button, #close-button, ytcp-button#close-button").first
                     if close_btn.is_visible():
                         close_btn.click(force=True)
                 except Exception:

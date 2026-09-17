@@ -113,16 +113,16 @@ class AutoPilotService:
                         else:
                             self.db.mark_clip_failed(clip["id"], yt_res.get("message", "Upload error"))
 
-                        # Short 3s cooldown, then immediately loop to upload next ready clip or produce!
-                        time.sleep(3)
+                        # Brief safety buffer, then immediately loop to upload next ready clip or produce!
+                        time.sleep(self.cooldown_sec)
                         continue
 
                 elif today_count >= self.target_daily:
                     console.print("[bold green]Daily target of uploads completed for today! Resting until midnight.[/bold green]")
 
-                # 2. PRODUCTION STAGE: If ready queue buffer is low (< 4 clips), discover & produce new shorts immediately!
+                # 2. PRODUCTION STAGE: Only when all queued clips are uploaded, discover & produce next video!
                 queued_count = self.db.get_queued_count()
-                if queued_count < 4 and today_count < self.target_daily:
+                if queued_count == 0 and today_count < self.target_daily:
                     console.print("[cyan]Queue buffer is low. Discovering fresh video from monitored creators...[/cyan]")
                     next_video = self.discovery.discover_next_unprocessed_video()
 
