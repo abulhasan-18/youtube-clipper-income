@@ -25,7 +25,7 @@ publishing:
   interval_minutes: 0          # Sequential uploads with no interval delay
   cooldown_seconds: 5          # 5s safety buffer between consecutive uploads
   default_visibility: "public" # public, unlisted, or private
-  headless: true               # Runs invisible in background without popping windows on Mac
+  headless: false              # Runs visible in frontend browser window (user can watch on screen)
   upload_backend: "studio"     # studio (Playwright - no quota limits) or api (YouTube API v3)
   channel_tags:
     - "Shorts"
@@ -35,11 +35,12 @@ publishing:
 
 autopilot:
   enabled: true
+  pipeline_mode: "concurrent"  # Option A: Simultaneous Concurrent Pipeline (Producer + Uploader in parallel)
   creators_registry: "creators.yaml"
   min_video_duration_minutes: 8
   max_video_duration_minutes: 240
-  batch_target: 200            # Clip 200 videos first, then upload sequentially
-  min_queue_buffer: 200
+  max_queue_buffer: 10         # Keeps up to 10 rendered clips on disk simultaneously (< 100MB)
+  clips_per_stream: 6          # Extract 6 viral shorts per ingested stream
 
 models:
   transcriber:

@@ -135,7 +135,12 @@ def cmd_discover(args):
         console.print("[yellow]No unprocessed videos found right now.[/yellow]\n")
 
 def cmd_autopilot(args):
-    autopilot = AutoPilotService()
+    headless = None
+    if getattr(args, "headless", False):
+        headless = True
+    elif getattr(args, "frontend", False):
+        headless = False
+    autopilot = AutoPilotService(headless=headless)
     autopilot.run_autonomous_loop()
 
 def cmd_schedule(args):
@@ -143,11 +148,13 @@ def cmd_schedule(args):
     scheduler.run_scheduler_daemon()
 
 def main():
-    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 96 Shorts/Day AutoPilot")
+    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 200 Shorts/Day AutoPilot")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # autopilot command (Primary 100% automated mode)
-    auto_parser = subparsers.add_parser("autopilot", help="Start 100% autonomous 24/7 video clipping and daily 96-shorts uploading (every 15 mins)")
+    auto_parser = subparsers.add_parser("autopilot", help="Start simultaneous concurrent 200 Shorts/Day video clipping and uploading")
+    auto_parser.add_argument("--frontend", action="store_true", default=True, help="Run visible Chrome browser UI on screen in the frontend (default)")
+    auto_parser.add_argument("--headless", action="store_true", help="Run uploader headlessly in background")
     auto_parser.set_defaults(func=cmd_autopilot)
 
     # clip command

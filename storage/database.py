@@ -218,3 +218,41 @@ class Database:
             """, (today_str,))
             row = cursor.fetchone()
             return row["count"] if row else 0
+
+    def claim_next_queued_clip(self) -> Optional[Dict[str, Any]]:
+        """
+        Atomically selects the highest virality rendered clip and updates its status
+        to 'uploading' in a single transaction, ensuring thread-safe handoff to uploader.
+        """
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM clips WHERE status = 'rendered'
+                ORDER BY virality_score DESC, id ASC LIMIT 1
+            """)
+            row = cursor.fetchone()
+            if not row:
+                return None
+            clip = dict(row)
+            cursor.execute("UPDATE clips SET status = 'uploading' WHERE id = ?", (clip["id"],))
+            conn.commit()
+            return clip
+
+    def reset_unrendered_uploading_clips(self):
+        """
+        Resets any clips left in 'uploading' status back to 'rendered' if their file exists,
+        or 'discarded' if the file was deleted. Called at startup to recover from crashes.
+        """
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, rendered_path FROM clips WHERE status = 'uploading'")
+            uploading_rows = cursor.fetchall()
+            for r in uploading_rows:
+                cid = r["id"]
+                rpath = r["rendered_path"]
+                if rpath and os.path.exists(rpath):
+                    cursor.execute("UPDATE clips SET status = 'rendered' WHERE id = ?", (cid,))
+                else:
+                    cursor.execute("UPDATE clips SET status = 'discarded' WHERE id = ?", (cid,))
+            conn.commit()
+
