@@ -211,11 +211,41 @@ class YouTubeStudioUploader(BaseUploader):
                     page.keyboard.press("Escape")
 
                 # Mark "Not made for kids" (Strictly required by YouTube to unlock Visibility/Publish)
-                logger.info("Setting audience to Not Made for Kids...")
-                not_mfk = page.locator("tp-yt-paper-radio-button[name='VIDEO_MADE_FOR_KIDS_NOT_MFK']").first
+                logger.info("Setting audience to: No, it's not 'Made for Kids'...")
+                not_mfk = page.locator("tp-yt-paper-radio-button[name='VIDEO_MADE_FOR_KIDS_NOT_MFK'], tp-yt-paper-radio-button:has-text(\"No, it's not 'Made for Kids'\"), tp-yt-paper-radio-button:has-text(\"Not made for kids\")").first
                 not_mfk.wait_for(state="visible", timeout=15000)
                 not_mfk.click(force=True)
                 time.sleep(0.8)
+
+                # Expand Age restriction and explicitly select: "No, don't restrict my video to viewers over 18 only"
+                logger.info("Setting Age restriction to: No, don't restrict my video to viewers over 18 only...")
+                try:
+                    not_age_restricted = page.locator("tp-yt-paper-radio-button:has-text(\"don't restrict my video to viewers over 18 only\"), tp-yt-paper-radio-button:has-text(\"don't restrict my video\"), tp-yt-paper-radio-button[name*='AGE_RESTRICTION_SAFE'], tp-yt-paper-radio-button[name*='NOT_RESTRICTED'], tp-yt-paper-radio-button[name*='SAFE']").first
+                    if not not_age_restricted.is_visible():
+                        age_toggle = page.locator("#age-restriction, [aria-label*='Age restriction' i], ytcp-button:has-text('Age restriction'), div:has-text('Age restriction'), span:has-text('Age restriction')").first
+                        if age_toggle.is_visible():
+                            age_toggle.click(force=True)
+                            time.sleep(0.6)
+
+                    if not_age_restricted.is_visible():
+                        not_age_restricted.click(force=True)
+                        logger.info("✓ Selected: No, don't restrict my video to viewers over 18 only")
+                        time.sleep(0.6)
+                    else:
+                        page.evaluate("""() => {
+                            const radios = Array.from(document.querySelectorAll('tp-yt-paper-radio-button, paper-radio-button'));
+                            for (const r of radios) {
+                                if (r.innerText && (r.innerText.includes("don't restrict") || r.innerText.includes("viewers over 18 only"))) {
+                                    r.click();
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }""")
+                        time.sleep(0.5)
+                except Exception as ae:
+                    logger.warning(f"Notice on age restriction selection: {ae}")
+
 
                 # Helper to handle Google "Verify that it's you" prompt if triggered
                 def handle_verification_if_needed():
