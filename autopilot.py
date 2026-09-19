@@ -87,6 +87,14 @@ class AutoPilotService:
         # Recover any stuck clips from prior runs
         self.db.reset_unrendered_uploading_clips()
 
+        # Check and remove any copyright claims from channel on startup
+        try:
+            if hasattr(self.uploader, "clean_channel_copyright_claims"):
+                logger.info("Performing startup sweep for copyright claims on channel...")
+                self.uploader.clean_channel_copyright_claims()
+        except Exception as ce:
+            logger.warning(f"[AutoPilot] Notice during initial copyright claim sweep: {ce}")
+
         # Start Producer and Uploader worker threads
         producer_thread = threading.Thread(target=self._producer_worker, name="ProducerThread", daemon=True)
         uploader_thread = threading.Thread(target=self._uploader_worker, name="UploaderThread", daemon=True)
@@ -276,6 +284,19 @@ class AutoPilotService:
                     except Exception:
                         pass
 
+                elif yt_res.get("status") == "claimed":
+                    claim_err = yt_res.get("error", "Copyright claim detected during checks")
+                    logger.warning(f"[Uploader] 🚫 Clip {clip['id']} flagged with copyright claim: {claim_err}. Aborting publication.")
+                    self.db.mark_clip_claimed(clip["id"], str(claim_err))
+                    self.uploader_status = f"Discarded: Claim detected on '{title[:25]}...'"
+                    if os.path.exists(rendered_path):
+                        try:
+                            os.remove(rendered_path)
+                            logger.info(f"[Uploader] Deleted claimed file {rendered_path}.")
+                        except Exception as de:
+                            logger.warning(f"[Uploader] Could not remove {rendered_path}: {de}")
+                    self._stop_event.wait(5.0)
+
                 else:
                     err_msg = yt_res.get("message", yt_res.get("error", "Upload error"))
                     logger.error(f"[Uploader] Upload failed for clip {clip['id']}: {err_msg}")
@@ -355,9 +376,9 @@ class AutoPilotService:
                             c = conn.cursor()
                             c.execute("SELECT status FROM clips WHERE rendered_path = ?", (fp,))
                             row = c.fetchone()
-                            if row and row["status"] in ["published", "discarded"]:
+                            if row and row["status"] in ["published", "discarded", "claimed", "failed"]:
                                 os.remove(fp)
-                                logger.info(f"Deleted previously published/discarded video: {fp}")
+                                logger.info(f"Deleted previously published/discarded/claimed video: {fp}")
                     except Exception:
                         pass
 

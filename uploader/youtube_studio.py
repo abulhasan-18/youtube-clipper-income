@@ -115,6 +115,92 @@ class YouTubeStudioUploader(BaseUploader):
             browser.close()
         logger.info("Session saved successfully!")
 
+    def clean_channel_copyright_claims(self) -> int:
+        """
+        Scans YouTube Studio for any Shorts or videos flagged with copyright claims
+        and permanently deletes them from the channel.
+        """
+        from playwright.sync_api import sync_playwright
+        logger.info("Scanning channel for any copyright-claimed content to remove...")
+        deleted_count = 0
+        try:
+            extra_args = ["--disable-blink-features=AutomationControlled"]
+            if self.headless:
+                extra_args.append("--headless=new")
+
+            with sync_playwright() as p:
+                browser = p.chromium.launch_persistent_context(
+                    user_data_dir=self.session_dir,
+                    headless=self.headless,
+                    user_agent=DEFAULT_USER_AGENT,
+                    channel="chrome" if os.path.exists("/Applications/Google Chrome.app") else None,
+                    args=extra_args
+                )
+                page = browser.new_page()
+
+                for ctype in ["short", "upload"]:
+                    filter_url = f"https://studio.youtube.com/channel/UCnpw_HHNNUKvMO64sHPCo_Q/videos/{ctype}?filter=%5B%7B%22name%22%3A%22HAS_COPYRIGHT_CLAIM%22%2C%22value%22%3A%22VIDEO_HAS_COPYRIGHT_CLAIM%22%7D%5D"
+                    page.goto(filter_url, wait_until="domcontentloaded", timeout=60000)
+                    page.wait_for_timeout(3500)
+
+                    # Handle Skip link if present
+                    skip_link = page.locator("a:has-text('Skip to YouTube Studio'), a[href*='approve_browser_access']").first
+                    if skip_link.is_visible():
+                        skip_link.click(force=True)
+                        page.wait_for_timeout(2000)
+
+                    while True:
+                        rows = page.locator("ytcp-video-row").all()
+                        if not rows:
+                            break
+                        row = rows[0]
+                        vtitle = "Unknown"
+                        try:
+                            vtitle = row.locator("#video-title").inner_text().strip()
+                        except Exception:
+                            pass
+                        logger.warning(f"Found copyright-claimed video on channel: '{vtitle}'. Deleting forever...")
+
+                        # Hover title to reveal options button
+                        title_el = row.locator("#video-title").first
+                        if title_el.is_visible():
+                            title_el.hover()
+                            page.wait_for_timeout(800)
+
+                        opt_btn = row.locator("[aria-label*='Options' i]").first
+                        if not opt_btn.is_visible():
+                            row.hover()
+                            page.wait_for_timeout(800)
+
+                        opt_btn.click(force=True)
+                        page.wait_for_timeout(1000)
+
+                        del_item = page.locator("tp-yt-paper-item:has-text('Delete forever'), paper-item:has-text('Delete forever')").first
+                        del_item.click(force=True)
+                        page.wait_for_timeout(1500)
+
+                        chk = page.locator("ytcp-confirmation-dialog #confirm-checkbox, ytcp-checkbox-lit#confirm-checkbox").first
+                        chk.click(force=True)
+                        page.wait_for_timeout(800)
+
+                        del_btn = page.locator("ytcp-confirmation-dialog #confirm-button, ytcp-button#confirm-button").first
+                        del_btn.click(force=True)
+                        deleted_count += 1
+                        logger.info(f"✓ Permanently deleted copyright-claimed video #{deleted_count} ('{vtitle}') from channel.")
+                        page.wait_for_timeout(4000)
+                        page.reload(wait_until="domcontentloaded")
+                        page.wait_for_timeout(3000)
+
+                browser.close()
+        except Exception as e:
+            logger.warning(f"Notice during channel copyright sweep: {e}")
+
+        if deleted_count > 0:
+            logger.info(f"✓ Channel copyright scan finished: {deleted_count} claimed videos removed.")
+        else:
+            logger.info("✓ Channel copyright scan finished: channel is clean (0 claims).")
+        return deleted_count
+
     def upload_short(self, video_path: str, title: str, description: str,
                      tags: List[str], visibility: str = "public") -> Dict[str, Any]:
         """
@@ -370,10 +456,26 @@ class YouTubeStudioUploader(BaseUploader):
 
                 # -------------------------------------------------------------------------
                 # CRITICAL: Wait until YouTube checks are 100% finished before publishing!
+                # STRICT RULE: If any copyright claim or issue is found, DO NOT PUBLISH!
                 # -------------------------------------------------------------------------
                 logger.info("Waiting for YouTube copyright and suitability checks to complete before publishing...")
                 checks_done = False
-                for chk_idx in range(120):  # Wait up to 4 minutes for checks to finish
+                has_copyright_claim = False
+                claim_reason = ""
+                max_check_wait = 600  # Wait up to 10 minutes for full processing & checks
+                start_chk_time = time.time()
+                chk_step = 0
+
+                while (time.time() - start_chk_time) < max_check_wait:
+                    chk_step += 1
+                    dialog_text = ""
+                    try:
+                        dialog_el = page.locator("ytcp-uploads-dialog").first
+                        if dialog_el.is_visible():
+                            dialog_text = dialog_el.inner_text().lower()
+                    except Exception:
+                        pass
+
                     progress_text = ""
                     try:
                         progress_el = page.locator("ytcp-video-upload-progress .progress-label, ytcp-video-upload-progress span, span.progress-label, .progress-label.style-scope.ytcp-video-upload-progress").first
@@ -382,44 +484,117 @@ class YouTubeStudioUploader(BaseUploader):
                     except Exception:
                         pass
 
-                    if progress_text and chk_idx % 5 == 0:
+                    if progress_text and chk_step % 5 == 0:
                         logger.info(f"Checks status: '{progress_text}'")
 
                     p_lower = progress_text.lower()
-                    is_complete = any(term in p_lower for term in [
-                        "checks complete",
-                        "no issues found",
-                        "checks finished",
-                        "no copyright issues"
-                    ])
-                    is_still_checking = any(term in p_lower for term in [
-                        "checks starting",
-                        "checking",
-                        "checks in progress",
-                        "processing"
-                    ])
 
-                    # Check also if Checks step badge has completed
+                    # 1. Detect Copyright Claims / Issues
+                    claim_keywords = [
+                        "issue found",
+                        "issues found",
+                        "copyright-protected content",
+                        "copyright claim",
+                        "copyright issue",
+                        "copyright-protected"
+                    ]
+                    if any(kw in p_lower for kw in claim_keywords):
+                        has_copyright_claim = True
+                        claim_reason = progress_text
+                        logger.warning(f"⚠️ COPYRIGHT CLAIM DETECTED in progress: '{progress_text}'")
+                        break
+
+                    if "checks complete" in dialog_text and any(kw in dialog_text for kw in claim_keywords):
+                        has_copyright_claim = True
+                        claim_reason = "Copyright issue detected in dialog checks"
+                        logger.warning(f"⚠️ COPYRIGHT CLAIM DETECTED in dialog text!")
+                        break
+
+                    # 2. Check if Checks step badge shows warning/alert
                     try:
                         checks_badge = page.locator("#step-badge-2, [test-id='CHECK_RESULTS']").first
                         if checks_badge.is_visible():
                             check_icon = checks_badge.locator("yt-icon, tp-yt-iron-icon, .badge-icon").first
                             if check_icon.is_visible():
-                                icon_str = check_icon.get_attribute("icon") or ""
-                                if "check" in icon_str.lower():
-                                    is_complete = True
+                                icon_str = (check_icon.get_attribute("icon") or "").lower()
+                                if any(ai in icon_str for ai in ["alert", "warning", "error"]):
+                                    has_copyright_claim = True
+                                    claim_reason = f"Check badge alert icon: {icon_str}"
+                                    logger.warning(f"⚠️ Copyright claim badge icon detected: {icon_str}")
+                                    break
                     except Exception:
                         pass
 
-                    if is_complete and not is_still_checking:
-                        logger.info(f"✓ YouTube checks are 100% complete: '{progress_text}'! Proceeding to publish...")
+                    # 3. Check if still in progress
+                    is_still_checking = any(term in p_lower for term in [
+                        "checks starting",
+                        "checking",
+                        "checks in progress",
+                        "processing",
+                        "minutes left",
+                        "seconds left",
+                        "about"
+                    ]) or ("until checks are complete" in dialog_text)
+
+                    # 4. Check if complete with NO issues
+                    is_clean_complete = any(term in p_lower for term in [
+                        "checks complete. no issues found",
+                        "checks complete",
+                        "no issues found",
+                        "no copyright issues"
+                    ]) and not any(kw in p_lower for kw in claim_keywords)
+
+                    if is_clean_complete and not is_still_checking:
+                        logger.info(f"✓ YouTube checks are 100% complete and verified clean: '{progress_text}'! Safe to publish.")
                         checks_done = True
                         break
 
                     time.sleep(2)
 
+                # STRICT RULE: If copyright claim was detected, ABORT AND DISCARD! DO NOT PUBLISH!
+                if has_copyright_claim:
+                    logger.warning("=" * 70)
+                    logger.warning(f"🚫 COPYRIGHT CLAIM DETECTED ON '{title[:50]}'! REASON: {claim_reason}")
+                    logger.warning("🚫 ABORTING AND DISCARDING UPLOAD TO AVOID PUBLISHING CLAIMED CONTENT!")
+                    logger.warning("=" * 70)
+                    try:
+                        close_btn = page.locator("ytcp-uploads-dialog #close-button, ytcp-button#close-button, [aria-label='Close']").first
+                        if close_btn.is_visible():
+                            close_btn.click(force=True)
+                            time.sleep(1.0)
+                            discard_btn = page.locator("ytcp-confirmation-dialog button:has-text('Discard'), ytcp-button:has-text('Discard'), button:has-text('Discard draft')").first
+                            if discard_btn.is_visible():
+                                discard_btn.click(force=True)
+                                logger.info("✓ Discarded draft upload from YouTube Studio.")
+                                time.sleep(1.0)
+                    except Exception as de:
+                        logger.warning(f"Notice discarding claimed upload: {de}")
+
+                    browser.close()
+                    return {
+                        "status": "claimed",
+                        "error": f"Copyright claim detected: {claim_reason}. Discarded to prevent uploading claimed content.",
+                        "title": title
+                    }
+
                 if not checks_done:
-                    logger.info("Checks wait timeout reached. Proceeding to publish...")
+                    logger.warning("YouTube checks did not complete within timeout. Discarding draft to prevent publishing unverified content.")
+                    try:
+                        close_btn = page.locator("ytcp-uploads-dialog #close-button, ytcp-button#close-button, [aria-label='Close']").first
+                        if close_btn.is_visible():
+                            close_btn.click(force=True)
+                            time.sleep(1.0)
+                            discard_btn = page.locator("ytcp-confirmation-dialog button:has-text('Discard'), ytcp-button:has-text('Discard')").first
+                            if discard_btn.is_visible():
+                                discard_btn.click(force=True)
+                    except Exception:
+                        pass
+                    browser.close()
+                    return {
+                        "status": "failed",
+                        "error": "YouTube checks did not finish in time. Discarded for safety.",
+                        "title": title
+                    }
 
                 time.sleep(1.0)
 

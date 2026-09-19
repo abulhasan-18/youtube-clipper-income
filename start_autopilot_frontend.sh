@@ -22,4 +22,4 @@ if [ -d "$DIR/.venv" ]; then
 fi
 
 # Run with caffeinate to prevent Mac from sleeping while actively clipping and uploading
-exec caffeinate -s -i python3 autopilot.py --frontend
+exec caffeinate -s -i "$DIR/.venv/bin/python3" autopilot.py --frontend

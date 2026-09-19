@@ -192,6 +192,13 @@ class Database:
             """, (error_message, clip_id))
             conn.commit()
 
+    def mark_clip_claimed(self, clip_id: int, reason: str = "Copyright claim detected"):
+        with self._get_conn() as conn:
+            conn.execute("""
+                UPDATE clips SET status = 'claimed', error_message = ? WHERE id = ?
+            """, (reason, clip_id))
+            conn.commit()
+
     def get_queued_clips(self, limit: int = 10) -> List[Dict[str, Any]]:
         with self._get_conn() as conn:
             cursor = conn.cursor()

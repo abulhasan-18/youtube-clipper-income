@@ -45,8 +45,13 @@ class MultiPlatformDispatcher:
                     yt_url = yt_res.get("url", "")
                     self.db.mark_clip_published(clip_id, yt_url)
                     results["youtube"] = {"status": "success", "url": yt_url}
+                elif yt_res.get("status") == "claimed":
+                    claim_err = yt_res.get("error", "Copyright claim detected during checks")
+                    logger.warning(f"Aborting publication across all platforms due to copyright claim: {claim_err}")
+                    results["youtube"] = {"status": "claimed", "error": claim_err}
+                    return results
                 else:
-                    results["youtube"] = {"status": "failed", "error": yt_res.get("message")}
+                    results["youtube"] = {"status": "failed", "error": yt_res.get("error", yt_res.get("message"))}
             except Exception as ye:
                 logger.error(f"YouTube upload error: {ye}")
                 results["youtube"] = {"status": "error", "message": str(ye)}
