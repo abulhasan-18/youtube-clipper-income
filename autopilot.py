@@ -231,12 +231,14 @@ class AutoPilotService:
                         conn.commit()
                     continue
 
-                # Respect cooldown between uploads
+                # Respect 2-minute break between uploads
                 time_since_last = time.time() - self.last_upload_time
                 if (self.last_upload_time > 0.0) and (time_since_last < self.cooldown_sec):
-                    wait_sec = self.cooldown_sec - time_since_last
-                    self.uploader_status = f"Cooldown buffer ({wait_sec:.1f}s remaining)..."
-                    self._stop_event.wait(wait_sec)
+                    break_end = self.last_upload_time + self.cooldown_sec
+                    while time.time() < break_end and not self._stop_event.is_set():
+                        rem = max(0, int(break_end - time.time()))
+                        self.uploader_status = f"Taking 2 min break after publish ({rem}s remaining)..."
+                        self._stop_event.wait(1.0)
 
                 title = clip.get("title", "Viral Short")
                 self.uploader_status = f"Opening frontend Chrome for Short #{today_count + 1}: '{title[:30]}...'"
@@ -281,8 +283,16 @@ class AutoPilotService:
                     self.uploader_status = f"Upload failed: {str(err_msg)[:40]}"
                     self._stop_event.wait(5.0)
 
-                # Cooldown before checking next clip
-                self._stop_event.wait(self.cooldown_sec)
+                # 2-minute break countdown after every publish
+                if yt_res.get("status") == "success":
+                    logger.info(f"[Uploader] Taking 2 minute break ({int(self.cooldown_sec)}s) before next upload...")
+                    break_end = time.time() + self.cooldown_sec
+                    while time.time() < break_end and not self._stop_event.is_set():
+                        rem = max(0, int(break_end - time.time()))
+                        self.uploader_status = f"Taking 2 min break after publish ({rem}s remaining)..."
+                        self._stop_event.wait(1.0)
+                else:
+                    self._stop_event.wait(5.0)
 
             except Exception as e:
                 logger.error(f"[Uploader] Worker error: {e}")
