@@ -368,6 +368,61 @@ class YouTubeStudioUploader(BaseUploader):
 
                 time.sleep(1.0)
 
+                # -------------------------------------------------------------------------
+                # CRITICAL: Wait until YouTube checks are 100% finished before publishing!
+                # -------------------------------------------------------------------------
+                logger.info("Waiting for YouTube copyright and suitability checks to complete before publishing...")
+                checks_done = False
+                for chk_idx in range(120):  # Wait up to 4 minutes for checks to finish
+                    progress_text = ""
+                    try:
+                        progress_el = page.locator("ytcp-video-upload-progress .progress-label, ytcp-video-upload-progress span, span.progress-label, .progress-label.style-scope.ytcp-video-upload-progress").first
+                        if progress_el.is_visible():
+                            progress_text = progress_el.inner_text().strip()
+                    except Exception:
+                        pass
+
+                    if progress_text and chk_idx % 5 == 0:
+                        logger.info(f"Checks status: '{progress_text}'")
+
+                    p_lower = progress_text.lower()
+                    is_complete = any(term in p_lower for term in [
+                        "checks complete",
+                        "no issues found",
+                        "checks finished",
+                        "no copyright issues"
+                    ])
+                    is_still_checking = any(term in p_lower for term in [
+                        "checks starting",
+                        "checking",
+                        "checks in progress",
+                        "processing"
+                    ])
+
+                    # Check also if Checks step badge has completed
+                    try:
+                        checks_badge = page.locator("#step-badge-2, [test-id='CHECK_RESULTS']").first
+                        if checks_badge.is_visible():
+                            check_icon = checks_badge.locator("yt-icon, tp-yt-iron-icon, .badge-icon").first
+                            if check_icon.is_visible():
+                                icon_str = check_icon.get_attribute("icon") or ""
+                                if "check" in icon_str.lower():
+                                    is_complete = True
+                    except Exception:
+                        pass
+
+                    if is_complete and not is_still_checking:
+                        logger.info(f"✓ YouTube checks are 100% complete: '{progress_text}'! Proceeding to publish...")
+                        checks_done = True
+                        break
+
+                    time.sleep(2)
+
+                if not checks_done:
+                    logger.info("Checks wait timeout reached. Proceeding to publish...")
+
+                time.sleep(1.0)
+
                 # Click Publish
                 logger.info("Submitting publication...")
                 done_btn = page.locator("#done-button:not([hidden]), #done-button, ytcp-button#done-button").first
