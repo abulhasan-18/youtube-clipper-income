@@ -21,7 +21,7 @@ subtitles:
   outline_width: 6
 
 publishing:
-  target_daily_uploads: 200    # Daily upload target: 200 viral Shorts
+  target_daily_uploads: 20     # Daily upload target: 20 viral Shorts
   interval_minutes: 0          # Sequential uploads with no interval delay
   cooldown_seconds: 120        # 2 minute break after every publish
   default_visibility: "public" # public, unlisted, or private

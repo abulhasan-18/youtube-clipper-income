@@ -23,8 +23,9 @@ class ContentDiscovery:
             logger.warning(f"Creators file {self.creators_file} not found.")
             return []
         with open(self.creators_file, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-            return data.get("creators", [])
+            data = yaml.safe_load(f) or {}
+            creators = data.get("creators", [])
+            return [c for c in creators if c.get("enabled", True)]
 
     def discover_next_unprocessed_video(self, min_duration_sec: float = 480.0,
                                         max_duration_sec: float = 14400.0) -> Optional[Dict[str, Any]]:

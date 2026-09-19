@@ -35,7 +35,7 @@ class AutoPilotService:
         self.vyro_hub = VyroMonetizationHub(db=self.db)
 
         # Simultaneous pipeline targets & buffers
-        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 200)
+        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 20)
         self.cooldown_sec = self.config.get("publishing", {}).get("cooldown_seconds", 5)
         self.visibility = self.config.get("publishing", {}).get("default_visibility", "public")
         self.reframe_mode = self.config.get("video", {}).get("reframe_mode", "blur_bg")
@@ -72,9 +72,11 @@ class AutoPilotService:
           frontend Chrome browser to YouTube Shorts, then deletes the local .mp4 to keep disk usage ~0 MB.
         - Main Thread: Displays a live frontend status dashboard.
         """
-        console.rule("[bold cyan]🤖 Clipper AutoPilot: Simultaneous Concurrent 200 Shorts Service")
+        creators_list = self.discovery.creators
+        c_names = ", ".join(list(dict.fromkeys([c.get("group", c.get("name")) for c in creators_list])))
+        console.rule(f"[bold cyan]🤖 Clipper AutoPilot: Simultaneous Concurrent {self.target_daily} Shorts Service")
         console.print(Panel(
-            f"[bold green]Monitored Creators:[/bold green] 44 Exclusive Titans (Speed, Kai, MrBeast, WWE, Sidemen, AMP, etc.)\n"
+            f"[bold green]Monitored Creators:[/bold green] {len(creators_list)} Active Channels ({c_names})\n"
             f"[bold green]Daily Target Output:[/bold green] {self.target_daily} Viral Shorts / Day\n"
             f"[bold green]Pipeline Architecture:[/bold green] Dual-Threaded Producer + Consumer (Option A)\n"
             f"[bold green]Uploader Mode:[/bold green] {'Visible UI in Frontend (Browser Window)' if not self.headless else 'Headless Background'}\n"
@@ -131,7 +133,7 @@ class AutoPilotService:
                     table.add_row("Last Uploaded", f"[bold white]{self.last_uploaded_clip}[/bold white]")
 
                 console.clear()
-                console.rule("[bold cyan]🤖 YouTube Shorts 200/Day Concurrent AutoPilot")
+                console.rule(f"[bold cyan]🤖 YouTube Shorts {self.target_daily}/Day Concurrent AutoPilot")
                 console.print(table)
                 console.print("[dim]Press Ctrl+C to stop. Producer & Frontend Uploader running concurrently.[/dim]")
 
@@ -170,8 +172,9 @@ class AutoPilotService:
                     self._stop_event.wait(15.0)
                     continue
 
-                # Discover next fresh stream from 44 creators
-                self.producer_status = "Scanning 44 creators for fresh streams..."
+                # Discover next fresh stream from active creators
+                c_count = len(self.discovery.creators)
+                self.producer_status = f"Scanning {c_count} active creator channel(s) for fresh streams..."
                 next_video = self.discovery.discover_next_unprocessed_video()
 
                 if next_video:
@@ -198,7 +201,7 @@ class AutoPilotService:
                         self.db.add_video(source_url=url, source_type="youtube", title=title, creator_name=creator)
                         self.producer_status = f"Error processing {creator} video: {str(pe)[:30]}"
                 else:
-                    self.producer_status = "No new stream found across 44 creators. Retrying in 15s..."
+                    self.producer_status = f"No new stream found across active creator(s). Retrying in 15s..."
                     self._stop_event.wait(15.0)
 
                 # Clean up temp audio and downloaded parts

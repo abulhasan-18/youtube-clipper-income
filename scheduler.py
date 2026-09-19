@@ -18,7 +18,7 @@ class ShortsScheduler:
 
         db_path = self.config.get("paths", {}).get("database", "storage/clipper.db")
         self.db = Database(db_path)
-        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 96)
+        self.target_daily = self.config.get("publishing", {}).get("target_daily_uploads", 20)
         self.interval_sec = self.config.get("publishing", {}).get("interval_minutes", 15) * 60
         self.visibility = self.config.get("publishing", {}).get("default_visibility", "public")
 
@@ -31,10 +31,10 @@ class ShortsScheduler:
     def run_scheduler_daemon(self):
         """
         Main 24/7 background scheduler loop.
-        Drip-feeds clips to achieve up to 96 uploads per day (every 15 minutes).
+        Drip-feeds clips to achieve up to configured daily uploads per day.
         """
-        console.rule("[bold green]YouTube Shorts Publishing Daemon (96 Clips/Day)")
-        console.print(f"Target: [cyan]{self.target_daily} uploads/day (4/hr)[/cyan] | Interval: [cyan]{self.interval_sec/60:.1f} minutes[/cyan]\n")
+        console.rule(f"[bold green]YouTube Shorts Publishing Daemon ({self.target_daily} Clips/Day)")
+        console.print(f"Target: [cyan]{self.target_daily} uploads/day[/cyan] | Interval: [cyan]{self.interval_sec/60:.1f} minutes[/cyan]\n")
 
         while True:
             try:
@@ -42,7 +42,7 @@ class ShortsScheduler:
                 console.print(f"[{datetime.now().strftime('%H:%M:%S')}] Daily uploads so far: [bold yellow]{today_count}/{self.target_daily}[/bold yellow]")
 
                 if today_count >= self.target_daily:
-                    console.print("[green]Daily target of 96 uploads reached! Sleeping until midnight...[/green]")
+                    console.print(f"[green]Daily target of {self.target_daily} uploads reached! Sleeping until midnight...[/green]")
                     time.sleep(3600)
                     continue
 

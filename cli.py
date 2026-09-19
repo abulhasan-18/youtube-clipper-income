@@ -148,11 +148,11 @@ def cmd_schedule(args):
     scheduler.run_scheduler_daemon()
 
 def main():
-    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 200 Shorts/Day AutoPilot")
+    parser = argparse.ArgumentParser(description="AI Video Clipper & Autonomous 20 Shorts/Day AutoPilot")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # autopilot command (Primary 100% automated mode)
-    auto_parser = subparsers.add_parser("autopilot", help="Start simultaneous concurrent 200 Shorts/Day video clipping and uploading")
+    auto_parser = subparsers.add_parser("autopilot", help="Start simultaneous concurrent 20 Shorts/Day video clipping and uploading")
     auto_parser.add_argument("--frontend", action="store_true", default=True, help="Run visible Chrome browser UI on screen in the frontend (default)")
     auto_parser.add_argument("--headless", action="store_true", help="Run uploader headlessly in background")
     auto_parser.set_defaults(func=cmd_autopilot)
