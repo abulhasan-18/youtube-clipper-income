@@ -156,6 +156,15 @@ class YouTubeStudioUploader(BaseUploader):
                     browser.close()
                     raise RuntimeError("Not logged into YouTube Studio. Run 'python cli.py login' or set YOUTUBE_SESSION_B64 secret!")
 
+                # Dismiss any lingering confirmation dialogs or backdrops
+                try:
+                    for btn in page.locator("ytcp-confirmation-dialog #confirm-button, ytcp-confirmation-dialog button:has-text('Save'), ytcp-confirmation-dialog button:has-text('Discard')").all():
+                        if btn.is_visible():
+                            btn.click(force=True)
+                            time.sleep(0.5)
+                except Exception:
+                    pass
+
                 # Click CREATE button
                 logger.info("Clicking Create button...")
                 create_btn = page.locator("#create-icon, #upload-button, [aria-label='Create'], ytcp-button#create-icon").first
@@ -192,7 +201,7 @@ class YouTubeStudioUploader(BaseUploader):
                 logger.info(f"Setting Title: {title[:80]}...")
                 title_elem = page.locator("#title-textarea #textbox, #textbox[aria-label*='title' i]").first
                 title_elem.wait_for(state="visible", timeout=30000)
-                title_elem.click()
+                title_elem.click(force=True)
                 page.keyboard.press("Meta+A")
                 page.keyboard.press("Backspace")
                 page.keyboard.type(title[:100], delay=5)
@@ -202,7 +211,7 @@ class YouTubeStudioUploader(BaseUploader):
                 # Set Description
                 desc_elem = page.locator("#description-textarea #textbox, #textbox[aria-label*='description' i]").first
                 if desc_elem.is_visible():
-                    desc_elem.click()
+                    desc_elem.click(force=True)
                     page.keyboard.press("Meta+A")
                     page.keyboard.press("Backspace")
                     full_desc = f"{description}\n\n{' '.join(['#' + t.strip('#') for t in tags])}"

@@ -50,8 +50,8 @@ models:
     provider: "groq"
     model: "qwen/qwen3.8-27b"
   viral_judge:
-    provider: "openrouter"
-    model: "deepseek/deepseek-chat"
+    provider: "gemini"
+    model: "gemini-3.6-flash"
   visual_verifier:
     provider: "gemini"
     model: "gemini-3.6-flash"
