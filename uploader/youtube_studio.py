@@ -338,11 +338,52 @@ class YouTubeStudioUploader(BaseUploader):
                 done_btn = page.locator("#done-button:not([hidden]), #done-button, ytcp-button#done-button").first
                 done_btn.wait_for(state="visible", timeout=20000)
                 done_btn.click(force=True)
+                time.sleep(1.0)
+
+                # Helper to auto-click "Publish anyway" if YouTube prompts with "Publish anyway" or "Go back"
+                def click_publish_anyway_if_prompted():
+                    try:
+                        publish_anyway_selectors = [
+                            "ytcp-button:has-text('Publish anyway')",
+                            "button:has-text('Publish anyway')",
+                            "#publish-anyway-button",
+                            "#secondary-action-button:has-text('Publish anyway')",
+                            "[aria-label*='Publish anyway' i]",
+                            "ytcp-confirmation-dialog ytcp-button:has-text('Publish')",
+                            "tp-yt-paper-dialog button:has-text('Publish anyway')",
+                            "ytcp-dialog button:has-text('Publish anyway')"
+                        ]
+                        clicked = False
+                        for sel in publish_anyway_selectors:
+                            btn = page.locator(sel).first
+                            if btn.is_visible():
+                                logger.info("⚡ Detected 'Publish anyway' prompt from YouTube. Clicking 'Publish anyway'...")
+                                btn.click(force=True)
+                                clicked = True
+                                time.sleep(1.0)
+                                break
+                        if not clicked:
+                            page.evaluate("""() => {
+                                const elements = Array.from(document.querySelectorAll('button, ytcp-button, tp-yt-paper-button, ytcp-confirmation-dialog ytcp-button'));
+                                for (const el of elements) {
+                                    if (el.innerText && el.innerText.toLowerCase().includes('publish anyway')) {
+                                        el.click();
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }""")
+                    except Exception:
+                        pass
+
+                # Check immediately after clicking done
+                click_publish_anyway_if_prompted()
 
                 # Wait for upload completion and publication confirmation
                 logger.info("Waiting for video upload and publication to finalize...")
                 for _ in range(30):
                     time.sleep(2)
+                    click_publish_anyway_if_prompted()
                     if not short_url:
                         try:
                             for el in page.locator("a[href*='youtu.be'], a[href*='youtube.com/shorts'], a.ytcp-video-info").all():
