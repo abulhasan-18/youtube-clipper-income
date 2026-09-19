@@ -333,6 +333,41 @@ class YouTubeStudioUploader(BaseUploader):
                     except Exception:
                         pass
 
+                # -------------------------------------------------------------------------
+                # CRITICAL: Wait for video file bytes to finish uploading to YouTube servers!
+                # If we click Publish and close the browser before YouTube finishes uploading,
+                # the upload gets terminated at "Uploading 0% (Pending)" in YouTube Studio.
+                # -------------------------------------------------------------------------
+                logger.info("Verifying video file bytes upload to YouTube is 100% complete...")
+                upload_complete = False
+                for wait_idx in range(90):  # Wait up to 3 minutes
+                    progress_text = ""
+                    try:
+                        progress_el = page.locator("ytcp-video-upload-progress .progress-label, ytcp-video-upload-progress span, span.progress-label, .progress-label.style-scope.ytcp-video-upload-progress").first
+                        if progress_el.is_visible():
+                            progress_text = progress_el.inner_text().strip()
+                    except Exception:
+                        pass
+
+                    if progress_text:
+                        if wait_idx % 5 == 0:
+                            logger.info(f"Upload transmission progress: '{progress_text}'")
+
+                        # If it no longer says "uploading x%", the file transfer is complete!
+                        is_still_uploading = ("uploading" in progress_text.lower()) and ("upload complete" not in progress_text.lower())
+                        if not is_still_uploading:
+                            logger.info(f"✓ Video file transfer 100% complete: '{progress_text}'")
+                            upload_complete = True
+                            break
+                    elif wait_idx > 10:
+                        # Progress label no longer visible, upload has moved to processing/checks
+                        upload_complete = True
+                        break
+
+                    time.sleep(2)
+
+                time.sleep(1.0)
+
                 # Click Publish
                 logger.info("Submitting publication...")
                 done_btn = page.locator("#done-button:not([hidden]), #done-button, ytcp-button#done-button").first
@@ -398,8 +433,8 @@ class YouTubeStudioUploader(BaseUploader):
                     if page.locator("ytcp-video-share-dialog, #share-url, tp-yt-paper-dialog:has-text('published')").first.is_visible():
                         logger.info("Publication confirmed by Studio share dialog!")
                         break
-                    if not page.locator("ytcp-uploads-dialog").is_visible():
-                        logger.info("Upload dialog closed, publication saved!")
+                    if not page.locator("ytcp-uploads-dialog").is_visible() and upload_complete:
+                        logger.info("Upload dialog closed, publication saved and confirmed complete!")
                         break
 
                 # Close post-publish share dialog if open
