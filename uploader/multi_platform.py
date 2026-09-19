@@ -50,6 +50,11 @@ class MultiPlatformDispatcher:
                     logger.warning(f"Aborting publication across all platforms due to copyright claim: {claim_err}")
                     results["youtube"] = {"status": "claimed", "error": claim_err}
                     return results
+                elif yt_res.get("status") == "daily_limit":
+                    limit_err = yt_res.get("error", "YouTube daily upload limit reached")
+                    logger.warning(f"YouTube daily limit reached: {limit_err}. Aborting remaining platforms.")
+                    results["youtube"] = {"status": "daily_limit", "error": limit_err}
+                    return results
                 else:
                     results["youtube"] = {"status": "failed", "error": yt_res.get("error", yt_res.get("message"))}
             except Exception as ye:

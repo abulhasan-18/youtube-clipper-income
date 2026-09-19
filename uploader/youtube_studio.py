@@ -226,6 +226,54 @@ class YouTubeStudioUploader(BaseUploader):
             )
             page = browser.new_page()
 
+            # Helper to detect and handle YouTube daily upload limit reached
+            def check_daily_limit_reached() -> bool:
+                limit_indicators = [
+                    "daily upload limit reached",
+                    "upload limit reached",
+                    "you can upload more videos in 24 hours"
+                ]
+                try:
+                    dialog = page.locator("ytcp-uploads-dialog, [role='dialog']").first
+                    if dialog.is_visible():
+                        diag_text = dialog.inner_text().lower()
+                        if any(li in diag_text for li in limit_indicators):
+                            return True
+                    body_text = page.locator("body").inner_text().lower()
+                    return any(li in body_text for li in limit_indicators)
+                except Exception:
+                    return False
+
+            def dismiss_and_exit_daily_limit():
+                logger.warning("=" * 70)
+                logger.warning("🛑 YOUTUBE DAILY UPLOAD LIMIT REACHED: 'You can upload more videos in 24 hours.'")
+                logger.warning("=" * 70)
+                try:
+                    cancel_modal_btn = page.locator("ytcp-confirmation-dialog button:has-text('Cancel upload'), [role='dialog'] button:has-text('Cancel upload')").first
+                    if cancel_modal_btn.is_visible():
+                        cancel_modal_btn.click(force=True)
+                        time.sleep(1.0)
+                    else:
+                        close_btn = page.locator("ytcp-uploads-dialog #close-button, ytcp-uploads-dialog [aria-label='Close'], #close-button").first
+                        if close_btn.is_visible():
+                            close_btn.click(force=True)
+                            time.sleep(1.0)
+                            cancel_modal_btn = page.locator("ytcp-confirmation-dialog button:has-text('Cancel upload'), [role='dialog'] button:has-text('Cancel upload')").first
+                            if cancel_modal_btn.is_visible():
+                                cancel_modal_btn.click(force=True)
+                                time.sleep(1.0)
+                except Exception as de:
+                    logger.warning(f"Notice dismissing daily limit dialog: {de}")
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+                return {
+                    "status": "daily_limit",
+                    "error": "Daily upload limit reached on YouTube. Quota resets in 24 hours.",
+                    "title": title
+                }
+
             try:
                 # Use domcontentloaded to prevent networkidle timeouts on YouTube websockets
                 page.goto("https://studio.youtube.com/?approve_browser_access=true", wait_until="domcontentloaded", timeout=60000)
@@ -280,8 +328,11 @@ class YouTubeStudioUploader(BaseUploader):
 
                 # Wait for upload modal
                 logger.info("Waiting for upload details dialog...")
-                page.wait_for_selector("#textbox", timeout=45000)
+                page.wait_for_selector("#textbox, ytcp-uploads-dialog", timeout=45000)
                 time.sleep(1.0)
+
+                if check_daily_limit_reached():
+                    return dismiss_and_exit_daily_limit()
 
                 # Set Title using keyboard typing
                 logger.info(f"Setting Title: {title[:80]}...")
@@ -383,6 +434,9 @@ class YouTubeStudioUploader(BaseUploader):
                 except Exception:
                     pass
 
+                if check_daily_limit_reached():
+                    return dismiss_and_exit_daily_limit()
+
                 # Direct Jump to Visibility Step Badge
                 logger.info("Navigating to Visibility step...")
                 vis_badge = page.locator("#step-badge-3, [test-id='VISIBILITY']").first
@@ -391,6 +445,8 @@ class YouTubeStudioUploader(BaseUploader):
                     time.sleep(1.2)
                 else:
                     for _ in range(3):
+                        if check_daily_limit_reached():
+                            return dismiss_and_exit_daily_limit()
                         handle_verification_if_needed()
                         time.sleep(0.3)
                         nb = page.locator("#next-button:not([hidden])").first
@@ -398,15 +454,22 @@ class YouTubeStudioUploader(BaseUploader):
                             nb.click(force=True)
                             time.sleep(0.8)
 
+                if check_daily_limit_reached():
+                    return dismiss_and_exit_daily_limit()
                 handle_verification_if_needed()
 
                 # Set Visibility to Public
                 logger.info(f"Setting visibility to {visibility}...")
                 vis_selector = f"tp-yt-paper-radio-button[name='{visibility.upper()}']"
                 vis_radio = page.locator(vis_selector).first
-                vis_radio.wait_for(state="visible", timeout=20000)
-                vis_radio.click(force=True)
-                time.sleep(1.0)
+                try:
+                    vis_radio.wait_for(state="visible", timeout=20000)
+                    vis_radio.click(force=True)
+                    time.sleep(1.0)
+                except Exception as ve:
+                    if check_daily_limit_reached():
+                        return dismiss_and_exit_daily_limit()
+                    raise ve
 
                 # Fetch URL before submitting if not yet found
                 if not short_url:
@@ -716,5 +779,13 @@ class YouTubeStudioUploader(BaseUploader):
                     page.screenshot(path="studio_error.png")
                 except Exception:
                     pass
-                browser.close()
+                try:
+                    if check_daily_limit_reached():
+                        return dismiss_and_exit_daily_limit()
+                except Exception:
+                    pass
+                try:
+                    browser.close()
+                except Exception:
+                    pass
                 raise e

@@ -297,6 +297,22 @@ class AutoPilotService:
                             logger.warning(f"[Uploader] Could not remove {rendered_path}: {de}")
                     self._stop_event.wait(5.0)
 
+                elif yt_res.get("status") == "daily_limit":
+                    limit_err = yt_res.get("error", "Daily upload limit reached on YouTube")
+                    logger.warning(f"[Uploader] 🛑 {limit_err}")
+                    # Re-queue clip back to 'rendered' so it is preserved and ready when limit resets
+                    with self.db._get_conn() as conn:
+                        conn.execute("UPDATE clips SET status = 'rendered' WHERE id = ?", (clip["id"],))
+                        conn.commit()
+                    self.uploader_status = "Daily upload limit reached (YouTube 24h reset). Standby mode."
+                    logger.warning("[Uploader] Standing by for quota reset or user feature verification. Pausing uploader for 30 minutes...")
+                    for standby_step in range(180):
+                        if self._stop_event.is_set():
+                            break
+                        rem_min = max(1, (180 - standby_step) * 10 // 60)
+                        self.uploader_status = f"Daily limit active. Standby mode ({rem_min}m remaining)..."
+                        self._stop_event.wait(10.0)
+
                 else:
                     err_msg = yt_res.get("message", yt_res.get("error", "Upload error"))
                     logger.error(f"[Uploader] Upload failed for clip {clip['id']}: {err_msg}")
@@ -312,6 +328,8 @@ class AutoPilotService:
                         rem = max(0, int(break_end - time.time()))
                         self.uploader_status = f"Taking 2 min break after publish ({rem}s remaining)..."
                         self._stop_event.wait(1.0)
+                elif yt_res.get("status") == "daily_limit":
+                    pass
                 else:
                     self._stop_event.wait(5.0)
 
