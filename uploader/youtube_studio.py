@@ -484,10 +484,16 @@ class YouTubeStudioUploader(BaseUploader):
                     except Exception:
                         pass
 
-                    if progress_text and chk_step % 5 == 0:
-                        logger.info(f"Checks status: '{progress_text}'")
+                    footer_text = ""
+                    try:
+                        footer_el = page.locator("ytcp-video-upload-progress, .footer.style-scope.ytcp-uploads-dialog").first
+                        if footer_el.is_visible():
+                            footer_text = footer_el.inner_text().strip().lower()
+                    except Exception:
+                        pass
 
                     p_lower = progress_text.lower()
+                    combined_status = f"{p_lower} {footer_text} {dialog_text}"
 
                     # 1. Detect Copyright Claims / Issues
                     claim_keywords = [
@@ -498,10 +504,10 @@ class YouTubeStudioUploader(BaseUploader):
                         "copyright issue",
                         "copyright-protected"
                     ]
-                    if any(kw in p_lower for kw in claim_keywords):
+                    if any(kw in p_lower for kw in claim_keywords) or any(kw in footer_text for kw in claim_keywords):
                         has_copyright_claim = True
-                        claim_reason = progress_text
-                        logger.warning(f"⚠️ COPYRIGHT CLAIM DETECTED in progress: '{progress_text}'")
+                        claim_reason = progress_text or footer_text
+                        logger.warning(f"⚠️ COPYRIGHT CLAIM DETECTED: '{claim_reason}'")
                         break
 
                     if "checks complete" in dialog_text and any(kw in dialog_text for kw in claim_keywords):
@@ -510,7 +516,8 @@ class YouTubeStudioUploader(BaseUploader):
                         logger.warning(f"⚠️ COPYRIGHT CLAIM DETECTED in dialog text!")
                         break
 
-                    # 2. Check if Checks step badge shows warning/alert
+                    # 2. Check if Checks step badge shows warning/alert or clean check
+                    is_badge_clean = False
                     try:
                         checks_badge = page.locator("#step-badge-2, [test-id='CHECK_RESULTS']").first
                         if checks_badge.is_visible():
@@ -522,30 +529,42 @@ class YouTubeStudioUploader(BaseUploader):
                                     claim_reason = f"Check badge alert icon: {icon_str}"
                                     logger.warning(f"⚠️ Copyright claim badge icon detected: {icon_str}")
                                     break
+                                elif "check" in icon_str:
+                                    is_badge_clean = True
                     except Exception:
                         pass
 
                     # 3. Check if still in progress
-                    is_still_checking = any(term in p_lower for term in [
+                    is_still_checking = any(term in combined_status for term in [
                         "checks starting",
                         "checking",
                         "checks in progress",
                         "processing",
                         "minutes left",
                         "seconds left",
-                        "about"
-                    ]) or ("until checks are complete" in dialog_text)
+                        "until checks are complete"
+                    ])
 
                     # 4. Check if complete with NO issues
-                    is_clean_complete = any(term in p_lower for term in [
+                    clean_indicators = [
                         "checks complete. no issues found",
-                        "checks complete",
                         "no issues found",
+                        "checks complete",
                         "no copyright issues"
-                    ]) and not any(kw in p_lower for kw in claim_keywords)
+                    ]
+                    is_clean_complete = (
+                        any(term in p_lower for term in clean_indicators) or
+                        any(term in footer_text for term in clean_indicators) or
+                        ("no issues found" in dialog_text) or
+                        ("checks complete" in dialog_text and not is_still_checking) or
+                        (is_badge_clean and not is_still_checking)
+                    ) and not any(kw in combined_status for kw in claim_keywords)
+
+                    if chk_step % 5 == 0:
+                        logger.info(f"Checks status #{chk_step}: progress='{progress_text}', footer='{footer_text[:50]}', still_checking={is_still_checking}, clean={is_clean_complete}")
 
                     if is_clean_complete and not is_still_checking:
-                        logger.info(f"✓ YouTube checks are 100% complete and verified clean: '{progress_text}'! Safe to publish.")
+                        logger.info(f"✓ YouTube checks are 100% complete and verified clean! Safe to publish.")
                         checks_done = True
                         break
 
